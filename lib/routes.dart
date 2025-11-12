@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:personal_finance_app_flutter/models/budget_model.dart';
 import 'package:personal_finance_app_flutter/models/goal_model.dart';
-import 'package:personal_finance_app_flutter/models/transaction_model.dart'; // Make sure this is imported
-import 'package:personal_finance_app_flutter/screens/auth/edit_profile_screen.dart';
+// No unused import for transaction_model.dart
 import 'package:personal_finance_app_flutter/screens/auth/forgot_password_screen.dart';
 import 'package:personal_finance_app_flutter/screens/auth/login_screen.dart';
 import 'package:personal_finance_app_flutter/screens/auth/otp_verification_screen.dart';
 import 'package:personal_finance_app_flutter/screens/auth/reset_password_screen.dart';
 import 'package:personal_finance_app_flutter/screens/auth/signup_screen.dart';
 import 'package:personal_finance_app_flutter/screens/auth_wrapper.dart';
-import 'package:personal_finance_app_flutter/screens/budget/budget_config_screen.dart';
-import 'package:personal_finance_app_flutter/screens/budget/budget_history_screen.dart';
+import 'package:personal_finance_app_flutter/screens/budget/add_edit_budget_screen.dart';
+import 'package:personal_finance_app_flutter/screens/budget/budget_screen.dart';
 import 'package:personal_finance_app_flutter/screens/dashboard/home_screen.dart';
 import 'package:personal_finance_app_flutter/screens/dashboard/reports_screen.dart';
 import 'package:personal_finance_app_flutter/screens/goals/add_goal_screen.dart';
 import 'package:personal_finance_app_flutter/screens/goals/saving_goals_list_screen.dart';
 import 'package:personal_finance_app_flutter/screens/goals/update_progress_screen.dart';
 import 'package:personal_finance_app_flutter/screens/main_screen.dart';
+import 'package:personal_finance_app_flutter/screens/profile/notification_screen.dart';
+import 'package:personal_finance_app_flutter/screens/profile/personal_info_screen.dart';
+import 'package:personal_finance_app_flutter/screens/profile/profile_screen.dart';
 import 'package:personal_finance_app_flutter/screens/transactions/category_screen.dart';
 import 'package:personal_finance_app_flutter/screens/transactions/new_transaction_screen.dart';
 import 'package:personal_finance_app_flutter/screens/transactions/transaction_management_screen.dart';
@@ -29,22 +32,27 @@ class AppRoutes {
   static const String otpVerification = '/otp';
   static const String resetPassword = '/reset_password';
   
-  static const String main = '/main';
-  static const String home = '/home';
-  static const String editProfile = '/edit_profile';
+  static const String main = '/main'; // Host for BottomNavBar
+  static const String home = '/home'; // Dashboard
 
-  static const String reports = '/reports'; 
+  // New Profile Routes
+  static const String profile = '/profile';
+  static const String personalInfo = '/personal_info';
+  static const String notifications = '/notifications';
 
-  static const String goalsList = '/goals';
+  static const String reports = '/reports'; // Statistics (Thống kê)
+
+  static const String goalsList = '/goals'; // Saving Goals (Mục tiêu)
   static const String addGoal = '/add_goal';
   static const String updateGoal = '/update_goal';
 
-  static const String transactionManagement = '/transactions';
+  static const String transactionManagement = '/transactions'; 
   static const String categorySelect = '/category_select';
   static const String newTransaction = '/new_transaction';
 
-  static const String budgetConfig = '/budget_config';
-  static const String budgetHistory = '/budget_history';
+  // New Budget Routes
+  static const String budget = '/budget';
+  static const String addEditBudget = '/add_edit_budget';
 
   // Route Generator
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -68,15 +76,22 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const MainScreen());
       case home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
-      case editProfile:
-        return MaterialPageRoute(builder: (_) => const EditProfileScreen());
       
+      // Profile
+      case profile:
+        return MaterialPageRoute(builder: (_) => const ProfileScreen());
+      case personalInfo:
+        return MaterialPageRoute(builder: (_) => const PersonalInfoScreen());
+      case notifications:
+        return MaterialPageRoute(builder: (_) => const NotificationScreen());
+
       // Goals
       case goalsList:
         return MaterialPageRoute(builder: (_) => const SavingGoalsListScreen());
       case addGoal:
         return MaterialPageRoute(builder: (_) => const AddNewGoalScreen());
       case updateGoal:
+        // Pass the Goal object to the update screen
         final goal = settings.arguments as Goal;
         return MaterialPageRoute(builder: (_) => UpdateProgressScreen(goal: goal));
 
@@ -90,21 +105,21 @@ class AppRoutes {
       case categorySelect:
         return MaterialPageRoute(builder: (_) => const CategoryScreen());
       case newTransaction:
-        final args = settings.arguments as Map<String, dynamic>;
+        // Pass the category and type to the new transaction screen
+        // THIS IS THE FIX: The arguments are a Map<String, String>
+        final args = settings.arguments as Map<String, String>;
+        final category = args['category']!;
+        final type = args['type']!;
         return MaterialPageRoute(
-          builder: (_) => NewTransactionScreen(
-            category: args['category'] as String,
-            // VVV THIS IS THE FIX VVV
-            type: args['type'] as TransactionType, 
-            // ^^^ THIS IS THE FIX ^^^
-          ),
-        );
+            builder: (_) => NewTransactionScreen(category: category, type: type));
 
       // Budget
-      case budgetConfig:
-        return MaterialPageRoute(builder: (_) => const BudgetConfigurationScreen());
-      case budgetHistory:
-        return MaterialPageRoute(builder: (_) => const BudgetReminderHistoryScreen());
+      case budget:
+        return MaterialPageRoute(builder: (_) => const BudgetScreen());
+      case addEditBudget:
+        // Pass the Budget object if we are editing, or null if adding
+        final budget = settings.arguments as Budget?;
+        return MaterialPageRoute(builder: (_) => AddEditBudgetScreen(budget: budget));
 
       default:
         return MaterialPageRoute(

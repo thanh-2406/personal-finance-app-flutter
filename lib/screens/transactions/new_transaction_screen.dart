@@ -4,11 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
+import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 import 'package:personal_finance_app_flutter/widgets/custom_text_field.dart';
 
 class NewTransactionScreen extends StatefulWidget {
   final String category;
-  final String type; // 'expense' or 'income'
+  final String type; // This is now a String: 'expense' or 'income'
 
   const NewTransactionScreen({
     super.key, 
@@ -25,7 +26,7 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
   final _amountController = TextEditingController();
   final _dateController = TextEditingController();
   final _notesController = TextEditingController();
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = DateTime.now(); // We still use DateTime for the picker
   bool _isLoading = false;
 
   @override
@@ -77,9 +78,9 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
 
       final newTransaction = TransactionModel(
         category: widget.category,
-        type: widget.type,
+        type: widget.type, // Pass the String 'expense' or 'income'
         amount: amount,
-        date: Timestamp.fromDate(_selectedDate),
+        date: Timestamp.fromDate(_selectedDate), // Convert DateTime to Timestamp
         notes: notes,
       );
 
@@ -113,17 +114,20 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            // VVV THIS IS THE FIX VVV
+            // It was crossAxisAlignment(...)
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            // ^^^ THIS IS THE FIX ^^^
             children: [
               // Category (read-only)
               TextFormField(
                 initialValue: widget.category,
                 readOnly: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Danh mục',
-                  // TODO: Add dynamic icon based on category
-                  prefixIcon: Icon(Icons.category), 
-                  border: OutlineInputBorder(),
+                  // Use the helper to show the correct icon
+                  prefixIcon: CategoryIcon(category: widget.category), 
+                  border: const OutlineInputBorder(),
                   filled: false,
                 ),
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -135,7 +139,7 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
                 prefixIcon: Icons.attach_money,
                 keyboardType: TextInputType.number,
                 validator: (val) {
-                  if (val!.isEmpty) return 'Vui lòng nhập số tiền';
+                  if (val == null || val.isEmpty) return 'Vui lòng nhập số tiền';
                   if (double.tryParse(val) == null) return 'Số tiền không hợp lệ';
                   return null;
                 },

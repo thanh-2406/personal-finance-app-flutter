@@ -15,41 +15,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _authService = AuthService();
-  final _formKey = GlobalKey<FormState>();
-
   bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
-  }
-
   Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate()) return;
-    
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
+        const SnackBar(content: Text('Mật khẩu không khớp.')),
       );
       return;
     }
 
     setState(() => _isLoading = true);
-    
+
     try {
+      // --- THIS IS THE FIX ---
+      // We must use named arguments, just like in the login screen
       await _authService.signUp(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
+        email: _emailController.text,
+        password: _passwordController.text,
       );
-      // The AuthWrapper will handle navigation
-      if (mounted) Navigator.pop(context); // Go back to login
+      // AuthWrapper will handle navigation to the home screen
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sign up: ${e.toString()}')),
+          SnackBar(content: Text('Lỗi đăng ký: ${e.toString()}')),
         );
       }
     }
@@ -57,6 +46,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -71,69 +68,53 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    Icons.person_add_alt_1,
-                    size: 100,
-                    color: Theme.of(context).colorScheme.primary,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Icon(
+                  Icons.person_add_alt_1,
+                  size: 100,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 32),
+                CustomTextField(
+                  controller: _emailController,
+                  hintText: 'Email',
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                CustomTextField(
+                  controller: _passwordController,
+                  hintText: 'Mật khẩu',
+                  prefixIcon: Icons.lock_outline,
+                  isPassword: true,
+                ),
+                const SizedBox(height: 16),
+                CustomTextField(
+                  controller: _confirmPasswordController,
+                  hintText: 'Xác nhận mật khẩu',
+                  prefixIcon: Icons.lock_outline,
+                  isPassword: true,
+                ),
+                const SizedBox(height: 24),
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : PrimaryButton(
+                        text: 'Đăng ký',
+                        onPressed: _signUp,
+                      ),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Đã có tài khoản? Đăng nhập'),
                   ),
-                  const SizedBox(height: 32),
-                  
-                  CustomTextField(
-                    controller: _emailController,
-                    hintText: 'Email',
-                    prefixIcon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (val) => val!.isEmpty ? 'Enter an email' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    hintText: 'Username',
-                    prefixIcon: Icons.person_outline,
-                    // Note: Firebase auth doesn't use username by default
-                    // You would save this to a 'users' collection in Firestore
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    controller: _passwordController,
-                    hintText: 'Password',
-                    prefixIcon: Icons.lock_outline,
-                    isPassword: true,
-                    validator: (val) => val!.length < 6 ? 'Enter a password 6+ chars long' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    controller: _confirmPasswordController,
-                    hintText: 'Confirm Password',
-                    prefixIcon: Icons.lock_outline,
-                    isPassword: true,
-                    validator: (val) => val != _passwordController.text ? 'Passwords do not match' : null,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  PrimaryButton(
-                    onPressed: _isLoading ? null : _signUp,
-                    child: _isLoading 
-                        ? const CircularProgressIndicator(color: Colors.white) 
-                        : const Text('Đăng ký'),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Đã có tài khoản? Đăng nhập'),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

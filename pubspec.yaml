@@ -1,6 +1,6 @@
 name: personal_finance_app_flutter
 description: A new Flutter project for personal finance management.
-publish_to: 'none'
+publish_to: 'none' 
 version: 1.0.0+1
 
 environment:
@@ -9,17 +9,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
+
+  # Icons
+  cupertino_icons: ^1.0.6
+
   # Firebase SDK
   firebase_core: ^2.27.0
   firebase_auth: ^4.17.8
   cloud_firestore: ^4.15.8
 
-  # Icons
-  cupertino_icons: ^1.0.6
-  
-  # For date formatting
+  # New packages for UI and date formatting
   intl: ^0.19.0
+  fl_chart: ^0.68.0       # For statistics pie chart
+  collection: ^1.18.0     # For grouping transactions
+  uuid: ^4.4.0            # For generating notification IDs
 
 dev_dependencies:
   flutter_test:

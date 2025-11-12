@@ -1,81 +1,133 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:personal_finance_app_flutter/models/budget_model.dart';
 import 'package:personal_finance_app_flutter/models/goal_model.dart';
+import 'package:personal_finance_app_flutter/models/notification_model.dart';
 import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 
 class DatabaseService {
   final String userId;
   DatabaseService({required this.userId});
 
-  // Firestore instance
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  // Main collection reference
+  CollectionReference get usersCollection =>
+      FirebaseFirestore.instance.collection('users');
 
-  // Collections References
-  CollectionReference<Goal> get _goalsCollection => _db
-      .collection('users')
-      .doc(userId)
-      .collection('goals')
-      .withConverter<Goal>(
-        fromFirestore: (snapshot, _) => Goal.fromJson(snapshot.data()!, snapshot.id),
-        toFirestore: (goal, _) => goal.toJson(),
-      );
-  
-  CollectionReference<TransactionModel> get _txnsCollection => _db
-      .collection('users')
-      .doc(userId)
-      .collection('transactions')
-      .withConverter<TransactionModel>(
-        fromFirestore: (snapshot, _) => TransactionModel.fromJson(snapshot.data()!, snapshot.id),
-        toFirestore: (txn, _) => txn.toJson(),
-      );
+  // Path for user-specific data
+  DocumentReference get userDocument => usersCollection.doc(userId);
 
-  // --- Goals CRUD ---
+  // --- Transactions ---
 
-  // Create (Add)
-  Future<void> addGoal(Goal goal) {
-    return _goalsCollection.add(goal);
+  CollectionReference get transactionsCollection =>
+      userDocument.collection('transactions');
+
+  // Add a new transaction
+  Future<void> addTransaction(TransactionModel transaction) {
+    return transactionsCollection.add(transaction.toJson());
   }
 
-  // Read (Stream)
-  Stream<List<Goal>> getGoalsStream() {
-    return _goalsCollection.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => doc.data()).toList();
-    });
-  }
-
-  // Update
-  Future<void> updateGoal(Goal goal) {
-    if (goal.id == null) throw Exception("Goal ID is null, cannot update");
-    return _goalsCollection.doc(goal.id).update(goal.toJson());
-  }
-
-  // Delete
-  Future<void> deleteGoal(String goalId) {
-    return _goalsCollection.doc(goalId).delete();
-  }
-
-  // --- Transactions CRUD ---
-
-  // Create (Add)
-  Future<void> addTransaction(TransactionModel txn) {
-    return _txnsCollection.add(txn);
-  }
-
-  // Read (Stream)
+  // Get a stream of transactions
   Stream<List<TransactionModel>> getTransactionsStream() {
-    // Order by date, most recent first
-    return _txnsCollection.orderBy('date', descending: true).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => doc.data()).toList();
-    });
+    return transactionsCollection.orderBy('date', descending: true).snapshots().map(
+        (snapshot) => snapshot.docs
+            .map((doc) => TransactionModel.fromJson(doc)) // <-- FIX HERE
+            .toList());
   }
 
-  // Update
-  Future<void> updateTransaction(TransactionModel txn) {
-    if (txn.id == null) throw Exception("Transaction ID is null, cannot update");
-    return _txnsCollection.doc(txn.id).update(txn.toJson());
+  // Get transactions within a date range (for statistics)
+  Stream<List<TransactionModel>> getTransactionsByDateRange(DateTime start, DateTime end) {
+    return transactionsCollection
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => TransactionModel.fromJson(doc)) // <-- FIX HERE
+            .toList());
   }
 
-  // Delete
-  Future<void> deleteTransaction(String txnId) {
-    return _txnsCollection.doc(txnId).delete();
+  // Delete a transaction
+  Future<void> deleteTransaction(String transactionId) {
+    return transactionsCollection.doc(transactionId).delete();
+  }
+
+  // --- Goals ---
+
+  CollectionReference get goalsCollection => userDocument.collection('goals');
+
+  // Add a new goal
+  Future<void> addGoal(Goal goal) {
+    return goalsCollection.add(goal.toJson());
+  }
+
+  // Get a stream of goals
+  Stream<List<Goal>> getGoalsStream() {
+    return goalsCollection.snapshots().map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Goal.fromJson(doc)).toList()); // <-- FIX HERE
+  }
+
+  // Update a goal
+  Future<void> updateGoal(Goal goal) {
+    return goalsCollection.doc(goal.id).update(goal.toJson());
+  }
+
+  // Delete a goal
+  Future<void> deleteGoal(String goalId) {
+    return goalsCollection.doc(goalId).delete();
+  }
+
+  // --- Budgets (NEW) ---
+
+  CollectionReference get budgetsCollection => userDocument.collection('budgets');
+
+  // Add a new budget
+  Future<void> addBudget(Budget budget) {
+    return budgetsCollection.add(budget.toJson());
+  }
+
+  // Get budgets for a specific month (e.g., "11-2025")
+  Stream<List<Budget>> getBudgetsStream(String monthYear) {
+    return budgetsCollection
+        .where('monthYear', isEqualTo: monthYear)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => Budget.fromJson(doc)).toList()); // <-- FIX HERE
+  }
+
+  // Update a budget
+  Future<void> updateBudget(Budget budget) {
+    return budgetsCollection.doc(budget.id).update(budget.toJson());
+  }
+
+  // Delete a budget
+  Future<void> deleteBudget(String budgetId) {
+    return budgetsCollection.doc(budgetId).delete();
+  }
+
+  // --- Notifications (NEW) ---
+
+  CollectionReference get notificationsCollection =>
+      userDocument.collection('notifications');
+
+  // Add a new notification (used by NotificationService)
+  Future<void> addNotification(AppNotification notification) {
+    return notificationsCollection
+        .doc(notification.id)
+        .set(notification.toJson());
+  }
+
+  // Get a stream of unread notifications
+  Stream<List<AppNotification>> getNotificationsStream() {
+    return notificationsCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => AppNotification.fromJson(doc)) // <-- FIX HERE
+            .toList());
+  }
+
+  // Mark a notification as read
+  Future<void> markNotificationAsRead(String notificationId) {
+    return notificationsCollection.doc(notificationId).update({'isRead': true});
   }
 }

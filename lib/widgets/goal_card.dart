@@ -13,11 +13,15 @@ class GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (goal.targetAmount > 0) 
-        ? (goal.currentAmount / goal.targetAmount) 
+    // --- THIS IS THE BUG FIX ---
+    // Ensure targetAmount is not zero to avoid division by zero
+    final double progress = (goal.targetAmount > 0)
+        ? (goal.currentAmount / goal.targetAmount)
         : 0.0;
-    
-    final percentage = (progress.clamp(0.0, 1.0) * 100).toStringAsFixed(0);
+    // Format the percentage
+    final String percentage = (progress * 100).toStringAsFixed(0);
+    // --- END OF BUG FIX ---
+
     final currencyFormat = (double amount) => '${amount.toStringAsFixed(0)} đ';
 
     return Card(
@@ -32,16 +36,20 @@ class GoalCard extends StatelessWidget {
               // Goal Name
               Text(
                 goal.name,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               // Progress Bar
               LinearProgressIndicator(
-                value: progress,
+                value: progress, // Use the calculated progress
                 minHeight: 12,
                 borderRadius: BorderRadius.circular(6),
-                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                backgroundColor:
+                    Theme.of(context).colorScheme.primary.withOpacity(0.1),
               ),
               const SizedBox(height: 8),
 
@@ -54,7 +62,7 @@ class GoalCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   Text(
-                    '$percentage%',
+                    '$percentage%', // Use the calculated percentage
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,

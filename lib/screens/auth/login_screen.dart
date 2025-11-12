@@ -15,28 +15,16 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
-  final _formKey = GlobalKey<FormState>();
-  
   bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-    
     try {
       await _authService.signIn(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
+        email: _emailController.text,
+        password: _passwordController.text,
       );
-      // The AuthWrapper will handle navigation
+      // AuthWrapper will handle navigation
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -44,10 +32,16 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     }
-
     if (mounted) {
       setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -57,63 +51,65 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    Icons.account_balance_wallet,
-                    size: 100,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  CustomTextField(
-                    controller: _emailController,
-                    hintText: 'Email',
-                    prefixIcon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (val) => val!.isEmpty ? 'Enter an email' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    controller: _passwordController,
-                    hintText: 'Password',
-                    prefixIcon: Icons.lock_outline,
-                    isPassword: true,
-                    validator: (val) => val!.length < 6 ? 'Enter a password 6+ chars long' : null,
-                  ),
-                  const SizedBox(height: 24),
-
-                  PrimaryButton(
-                    onPressed: _isLoading ? null : _login,
-                    child: _isLoading 
-                        ? const CircularProgressIndicator(color: Colors.white) 
-                        : const Text('Đăng nhập'),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, AppRoutes.forgotPassword);
-                        },
-                        child: const Text('Quên mật khẩu?'),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Icon(
+                  Icons.account_balance_wallet,
+                  size: 100,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 32),
+                const Text('Email', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                CustomTextField(
+                  controller: _emailController,
+                  hintText: 'Email',
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                const Text('Mật khẩu', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                CustomTextField(
+                  controller: _passwordController,
+                  hintText: 'Mật khẩu',
+                  prefixIcon: Icons.lock_outline,
+                  isPassword: true,
+                ),
+                const SizedBox(height: 24),
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : PrimaryButton(
+                        text: 'Đăng nhập',
+                        onPressed: _login,
                       ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, AppRoutes.signup);
-                        },
-                        child: const Text('Chưa có tài khoản?'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                const SizedBox(height: 16),
+                const Divider(height: 24),
+
+                // --- THIS IS THE FIX ---
+                // Change Row to Wrap to prevent overflow on small screens
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  runSpacing: 8.0, // Add spacing if they wrap to the next line
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.forgotPassword);
+                      },
+                      child: const Text('Quên mật khẩu?'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.signup);
+                      },
+                      child: const Text('Chưa có tài khoản?'),
+                    ),
+                  ],
+                ),
+                // --- END OF FIX ---
+              ],
             ),
           ),
         ),

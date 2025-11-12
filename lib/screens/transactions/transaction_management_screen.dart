@@ -14,7 +14,9 @@ class TransactionManagementScreen extends StatelessWidget {
     if (user == null) {
       return const Scaffold(body: Center(child: Text("Please log in.")));
     }
-    final _dbService = DatabaseService(userId: user.uid);
+    // VVV LINTER FIX VVV
+    final dbService = DatabaseService(userId: user.uid);
+    // ^^^ LINTER FIX ^^^
 
     return Scaffold(
       appBar: AppBar(
@@ -29,7 +31,7 @@ class TransactionManagementScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<List<TransactionModel>>(
-        stream: _dbService.getTransactionsStream(),
+        stream: dbService.getTransactionsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -47,15 +49,17 @@ class TransactionManagementScreen extends StatelessWidget {
             itemCount: transactions.length,
             itemBuilder: (context, index) {
               final txn = transactions[index];
-              final isIncome = txn.type == 'income';
-              final dateString = DateFormat('dd/MM/yyyy').format(txn.date.toDate());
+              // VVV THIS IS THE FIX VVV
+              final isIncome = txn.type == 'income'; // Check for String 'income'
+              final dateString = DateFormat('dd/MM/yyyy').format(txn.date.toDate()); // Call .toDate() on Timestamp
+              // ^^^ THIS IS THE FIX ^^^
 
               // Use Dismissible for delete functionality
               return Dismissible(
                 key: Key(txn.id!),
                 direction: DismissDirection.endToStart,
                 onDismissed: (direction) {
-                  _dbService.deleteTransaction(txn.id!);
+                  dbService.deleteTransaction(txn.id!);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Đã xoá giao dịch "${txn.category}"')),
                   );

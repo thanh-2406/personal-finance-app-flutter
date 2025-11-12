@@ -1,27 +1,19 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Goal {
-  String? id; // Firestore document ID
-  final String name;
-  final double targetAmount;
-  final double currentAmount;
+  String? id;
+  String name;
+  double targetAmount;
+  double currentAmount;
 
   Goal({
     this.id,
     required this.name,
     required this.targetAmount,
-    required this.currentAmount,
+    this.currentAmount = 0.0,
   });
 
-  // Factory constructor to create a Goal from JSON (Firestore data)
-  factory Goal.fromJson(Map<String, dynamic> json, String id) {
-    return Goal(
-      id: id,
-      name: json['name'] as String,
-      targetAmount: (json['targetAmount'] as num).toDouble(),
-      currentAmount: (json['currentAmount'] as num).toDouble(),
-    );
-  }
-
-  // Method to convert a Goal object to JSON (for writing to Firestore)
+  // Convert to a map for Firestore
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -30,7 +22,19 @@ class Goal {
     };
   }
 
-  // Helper method to create a copy of a Goal with updated values
+  // Create from a Firestore DocumentSnapshot
+  factory Goal.fromJson(DocumentSnapshot doc) {
+    Map<String, dynamic> map = doc.data() as Map<String, dynamic>;
+    return Goal(
+      id: doc.id,
+      name: map['name'],
+      targetAmount: (map['targetAmount'] as num).toDouble(),
+      currentAmount: (map['currentAmount'] as num).toDouble(),
+    );
+  }
+
+  // --- THIS IS THE FIX ---
+  // Add the missing copyWith method
   Goal copyWith({
     String? id,
     String? name,

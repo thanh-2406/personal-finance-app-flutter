@@ -3,7 +3,9 @@ import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 import 'package:personal_finance_app_flutter/routes.dart';
 import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
-import 'package:intl/intl.dart'; // Import for date formatting
+import 'package:intl/intl.dart'; 
+import 'package:collection/collection.dart'; 
+import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -12,44 +14,52 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
     if (user == null) {
-      // This should not happen if AuthWrapper is working, but it's good practice.
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+      Navigator.pushNamedAndRemoveUntil(
+          context, AppRoutes.login, (route) => false);
       return const Scaffold();
     }
     
     final dbService = DatabaseService(userId: user.uid);
+    final userName = user.displayName ?? user.email?.split('@').first ?? "User";
 
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // 1. Header
+            // 1. Header with Avatar and "Hello, [Username]"
             SliverAppBar(
               pinned: true,
-              backgroundColor: Colors.grey[50],
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               elevation: 0,
-              title: const CircleAvatar(
-                child: Icon(Icons.person),
+              titleSpacing: 0,
+              title: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, AppRoutes.profile);
+                    },
+                    child: const CircleAvatar(
+                      child: Icon(Icons.person),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Hello, $userName",
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.logout),
-                  tooltip: 'Sign Out',
-                  onPressed: () async {
-                    await AuthService().signOut();
-                    // AuthWrapper will handle navigation
-                  },
-                ),
-                IconButton(
                   icon: const Icon(Icons.more_vert),
                   onPressed: () {
-                    Navigator.pushNamed(context, AppRoutes.editProfile);
+                    // TODO: Implement new function (e.g., filter, settings)
                   },
                 ),
               ],
             ),
             
-            // 2. Account Summary Card (StreamBuilder for real-time totals)
+            // 2. Account Summary Card
             SliverToBoxAdapter(
               child: _buildAccountSummaryCard(context, dbService),
             ),
@@ -63,41 +73,31 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, AppRoutes.categorySelect);
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
   // Widget for the summary card
   Widget _buildAccountSummaryCard(BuildContext context, DatabaseService dbService) {
-    // This StreamBuilder listens to all transactions to calculate totals
     return StreamBuilder<List<TransactionModel>>(
       stream: dbService.getTransactionsStream(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Card(child: Center(child: CircularProgressIndicator()));
-        }
+        double totalIncome = 0.0;
+        double totalExpense = 0.0;
 
-        double totalIncome = 0;
-        double totalExpense = 0;
-        for (var txn in snapshot.data!) {
-          if (txn.type == TransactionType.income) {
-            totalIncome += txn.amount;
-          } else {
-            totalExpense += txn.amount;
+        if (snapshot.hasData) {
+          for (var txn in snapshot.data!) {
+            if (txn.type == 'income') {
+              totalIncome += txn.amount;
+            } else {
+              totalExpense += txn.amount;
+            }
           }
         }
-        double currentBalance = totalIncome - totalExpense;
-        double totalBudget = totalIncome; // Or some other metric
-        double incomeProgress = totalBudget > 0 ? (totalIncome / totalBudget) : 0;
-        double expenseProgress = totalBudget > 0 ? (totalExpense / totalBudget) : 0;
-
-        // Number formatter for currency
-        final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+        
+        final double balance = totalIncome - totalExpense;
+        final double total = totalIncome + totalExpense;
+        final double incomeProgress = total > 0 ? totalIncome / total : 0;
+        final double expenseProgress = total > 0 ? totalExpense / total : 0;
 
         return Card(
           child: Padding(
@@ -111,27 +111,25 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  currencyFormat.format(currentBalance),
+                  '${balance.toStringAsFixed(0)} đ', 
                   style: Theme.of(context)
                       .textTheme
                       .headlineMedium
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 24),
-                // Income
                 _buildBalanceBar(
                   context: context,
                   label: 'Thu nhập',
-                  amount: currencyFormat.format(totalIncome),
+                  amount: '${totalIncome.toStringAsFixed(0)} đ',
                   progress: incomeProgress,
                   color: Colors.green,
                 ),
                 const SizedBox(height: 16),
-                // Expense
                 _buildBalanceBar(
                   context: context,
                   label: 'Chi tiêu',
-                  amount: currencyFormat.format(totalExpense),
+                  amount: '${totalExpense.toStringAsFixed(0)} đ',
                   progress: expenseProgress,
                   color: Colors.red,
                 ),
@@ -164,7 +162,7 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 8),
         LinearProgressIndicator(
           value: progress,
-          backgroundColor: color.withOpacity(0.2),
+          backgroundColor: color.withAlpha(51), // 20% opacity (FIX)
           color: color,
           minHeight: 10,
           borderRadius: BorderRadius.circular(5),
@@ -175,53 +173,74 @@ class HomeScreen extends StatelessWidget {
 
   // Widget for transaction list
   Widget _buildTransactionList(DatabaseService dbService) {
-    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
-    final dateFormat = DateFormat('dd/MM/yyyy');
+    final DateFormat dayFormatter = DateFormat('dd-MM-yyyy');
+    final DateFormat displayFormatter = DateFormat('EEEE, dd/MM/yyyy', 'vi_VN');
 
     return StreamBuilder<List<TransactionModel>>(
       stream: dbService.getTransactionsStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
-        }
-        if (snapshot.hasError) {
-          return SliverToBoxAdapter(child: Center(child: Text('Error: ${snapshot.error}')));
+          return const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SliverToBoxAdapter(
+          // --- THIS IS THE FIX ---
+          // Corrected typo from SliverToBoxBAdapter to SliverToBoxAdapter
+          return const SliverToBoxAdapter( 
             child: Padding(
               padding: EdgeInsets.all(32.0),
-              child: Center(child: Text('Bạn chưa có giao dịch nào.')),
+              child: Center(
+                child: Text('Chưa có giao dịch nào.'),
+              ),
             ),
           );
         }
 
         final transactions = snapshot.data!;
-        // We don't group by date here for simplicity, but you could add that logic.
         
+        final groupedTransactions = groupBy(
+          transactions,
+          (TransactionModel txn) => dayFormatter.format(txn.date.toDate()),
+        );
+
+        final dates = groupedTransactions.keys.toList();
+
         return SliverList(
           delegate: SliverChildBuilderDelegate(
             (context, index) {
-              final txn = transactions[index];
-              final isIncome = txn.type == TransactionType.income;
-              
-              return ListTile(
-                leading: CircleAvatar(
-                  // TODO: Map txn.category to an Icon
-                  child: Icon(isIncome ? Icons.arrow_downward : Icons.arrow_upward),
-                ),
-                title: Text(txn.category),
-                subtitle: Text(dateFormat.format(txn.date)),
-                trailing: Text(
-                  '${isIncome ? '+' : '-'}${currencyFormat.format(txn.amount)}',
-                  style: TextStyle(
-                    color: isIncome ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
+              final dateKey = dates[index];
+              final items = groupedTransactions[dateKey]!;
+              final displayDate = displayFormatter.format(items.first.date.toDate());
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      displayDate,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey.shade700),
+                    ),
                   ),
-                ),
+                  ...items.map((txn) => ListTile(
+                        leading: CircleAvatar(
+                          child: CategoryIcon(category: txn.category),
+                        ),
+                        title: Text(txn.category),
+                        subtitle: Text(txn.notes),
+                        trailing: Text(
+                          '${txn.type == 'income' ? '+' : '-'}${txn.amount.toStringAsFixed(0)} đ',
+                          style: TextStyle(
+                            color: txn.type == 'income' ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )),
+                ],
               );
             },
-            childCount: transactions.length,
+            childCount: dates.length,
           ),
         );
       },
@@ -237,7 +256,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: Colors.grey[50], // Match scaffold bg
+      color: Theme.of(context).scaffoldBackgroundColor, 
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       alignment: Alignment.centerLeft,
       child: Text(

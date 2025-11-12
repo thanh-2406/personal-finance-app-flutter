@@ -1,18 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// THIS IS THE ENUM THE COMPILER IS LOOKING FOR
-enum TransactionType {
-  income,
-  expense,
-}
-
 class TransactionModel {
   String? id;
   String category;
   double amount;
-  DateTime date;
+  Timestamp date; // Use Timestamp for Firestore
   String notes;
-  TransactionType type;
+  String type; // 'income' or 'expense'
 
   TransactionModel({
     this.id,
@@ -23,37 +17,28 @@ class TransactionModel {
     required this.type,
   });
 
-  // Helper function to convert enum to string
-  String get typeAsString {
-    return type == TransactionType.income ? 'income' : 'expense';
-  }
-
-  // Helper function to convert string to enum
-  static TransactionType typeFromString(String typeStr) {
-    return typeStr == 'income' ? TransactionType.income : TransactionType.expense;
-  }
-
   // Convert to a map for Firestore
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'category': category,
       'amount': amount,
-      'date': Timestamp.fromDate(date),
+      'date': date,
       'notes': notes,
-      'type': typeAsString, // Store as a string
+      'type': type,
     };
   }
 
-  // Create from a Firestore document
-  factory TransactionModel.fromMap(DocumentSnapshot doc) {
+  // --- THIS IS THE FIX ---
+  // Create from a Firestore DocumentSnapshot
+  factory TransactionModel.fromJson(DocumentSnapshot doc) {
     Map<String, dynamic> map = doc.data() as Map<String, dynamic>;
     return TransactionModel(
-      id: doc.id,
+      id: doc.id, // Get the ID from the document itself
       category: map['category'],
       amount: (map['amount'] as num).toDouble(),
-      date: (map['date'] as Timestamp).toDate(),
+      date: map['date'] as Timestamp, // Get as Timestamp
       notes: map['notes'] ?? '',
-      type: typeFromString(map['type']), // Read string and convert to enum
+      type: map['type'],
     );
   }
 }
