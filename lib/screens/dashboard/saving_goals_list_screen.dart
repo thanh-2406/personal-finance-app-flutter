@@ -3,9 +3,9 @@ import 'package:personal_finance_app_flutter/models/goal_model.dart';
 import 'package:personal_finance_app_flutter/routes.dart';
 import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
+import 'package:personal_finance_app_flutter/services/goal_notification_service.dart';
 import 'package:personal_finance_app_flutter/widgets/goal_card.dart';
 
-// THIS IS THE CORRECT CLASS NAME FOR THIS FILE
 class SavingGoalsListScreen extends StatelessWidget {
   const SavingGoalsListScreen({super.key});
 
@@ -16,6 +16,7 @@ class SavingGoalsListScreen extends StatelessWidget {
       return const Scaffold(body: Center(child: Text("Please log in.")));
     }
     final dbService = DatabaseService(userId: user.uid);
+    final goalNotificationService = GoalNotificationService(dbService: dbService);
 
     return Scaffold(
       appBar: AppBar(
@@ -31,17 +32,20 @@ class SavingGoalsListScreen extends StatelessWidget {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Bạn chưa có mục tiêu nào. Hãy thêm một mục tiêu!'));
+            return const Center(
+                child:
+                    Text('Bạn chưa có mục tiêu nào. Hãy thêm một mục tiêu!'));
           }
 
           final goals = snapshot.data!;
+
+          goalNotificationService.checkGoalDeadlines(goals);
 
           return ListView.builder(
             itemCount: goals.length,
             itemBuilder: (context, index) {
               final goal = goals[index];
-              
-              // Use Dismissible for delete functionality
+
               return Dismissible(
                 key: Key(goal.id!),
                 direction: DismissDirection.endToStart,
@@ -58,10 +62,16 @@ class SavingGoalsListScreen extends StatelessWidget {
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 child: GoalCard(
-                  goal: goal, // Pass the whole goal object
+                  goal: goal,
                   onTap: () {
-                    // Navigate to update screen, passing the goal
-                    Navigator.pushNamed(context, AppRoutes.updateGoal, arguments: goal);
+                    // --- FIX 1: Use the correct route ---
+                    Navigator.pushNamed(context, AppRoutes.goalDetails,
+                        arguments: goal);
+                  },
+                  // --- FIX 2: Add the required onEdit function ---
+                  onEdit: () {
+                    Navigator.pushNamed(context, AppRoutes.addEditGoal,
+                        arguments: goal);
                   },
                 ),
               );
@@ -69,12 +79,8 @@ class SavingGoalsListScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, AppRoutes.addGoal);
-        },
-        child: const Icon(Icons.add),
-      ),
+      // The FloatingActionButton is handled by main_screen.dart
+      // It correctly calls AppRoutes.addEditGoal
     );
   }
 }

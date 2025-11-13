@@ -5,6 +5,7 @@ import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
 import 'package:collection/collection.dart';
+import 'package:personal_finance_app_flutter/utils/currency_formatter.dart'; // Import formatter
 import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 
 class ReportsScreen extends StatefulWidget {
@@ -32,7 +33,6 @@ class _ReportsScreenState extends State<ReportsScreen>
     super.dispose();
   }
 
-  // --- Date Range Picker ---
   Future<void> _selectDateRange() async {
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
@@ -44,7 +44,6 @@ class _ReportsScreenState extends State<ReportsScreen>
         picked != DateTimeRange(start: _startDate, end: _endDate)) {
       setState(() {
         _startDate = picked.start;
-        // Add 1 day to end date to make it inclusive for queries
         _endDate = picked.end.add(const Duration(days: 1));
       });
     }
@@ -57,9 +56,6 @@ class _ReportsScreenState extends State<ReportsScreen>
       return const Scaffold(body: Center(child: Text("Please log in.")));
     }
     final dbService = DatabaseService(userId: user.uid);
-
-    final String dateRangeText =
-        "${DateFormat('dd/MM/yyyy').format(_startDate)} - ${DateFormat('dd/MM/yyyy').format(_endDate.subtract(const Duration(days: 1)))}";
 
     return Scaffold(
       appBar: AppBar(
@@ -78,7 +74,6 @@ class _ReportsScreenState extends State<ReportsScreen>
           ],
         ),
       ),
-      // We use a StreamBuilder that reacts to date changes
       body: StreamBuilder<List<TransactionModel>>(
         stream: dbService.getTransactionsByDateRange(_startDate, _endDate),
         builder: (context, snapshot) {
@@ -91,7 +86,6 @@ class _ReportsScreenState extends State<ReportsScreen>
 
           final allTransactions = snapshot.data!;
 
-          // Filter transactions for each tab
           final expenses = allTransactions
               .where((txn) => txn.type == 'expense')
               .toList();
@@ -110,11 +104,9 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  // --- Reusable View for "Chi tiêu" and "Thu nhập" ---
   Widget _buildReportView(
       BuildContext context, String title, List<TransactionModel> transactions) {
     
-    // --- 1. Calculate Totals and Group Data ---
     final double total = transactions.fold(0.0, (sum, txn) => sum + txn.amount);
 
     final Map<String, double> categoryMap =
@@ -124,39 +116,37 @@ class _ReportsScreenState extends State<ReportsScreen>
                   list.fold(0.0, (sum, txn) => sum + txn.amount),
                 ));
 
-    // Sort by amount
     final sortedCategories = categoryMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    // --- 2. Create Pie Chart Data ---
     final List<PieChartSectionData> pieSections =
-        sortedCategories.map((entry) {
-      final percentage = (entry.value / total) * 100;
-      return PieChartSectionData(
-        value: entry.value,
-        title: '${percentage.toStringAsFixed(0)}%',
-        color: CategoryIcon.getColor(entry.key), // Use consistent color
-        radius: 100,
-        titleStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      );
-    }).toList();
+        (total > 0) ? sortedCategories.map((entry) { // Check total > 0
+            final percentage = (entry.value / total) * 100;
+            return PieChartSectionData(
+              value: entry.value,
+              title: '${percentage.toStringAsFixed(0)}%',
+              color: CategoryIcon.getColor(entry.key),
+              radius: 100,
+              titleStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            );
+          }).toList()
+        : []; // Return empty list if total is 0
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- 1. Header (Total and Date Range) ---
           Text(
             'Tổng $title',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           Text(
-            '${total.toStringAsFixed(0)} đ',
+            CurrencyFormatter.format(total), // <-- USE FORMATTER
             style: Theme.of(context)
                 .textTheme
                 .headlineMedium
@@ -168,7 +158,6 @@ class _ReportsScreenState extends State<ReportsScreen>
           ),
           const SizedBox(height: 24),
 
-          // --- 2. Pie Chart ---
           SizedBox(
             height: 250,
             child: (pieSections.isEmpty)
@@ -183,7 +172,6 @@ class _ReportsScreenState extends State<ReportsScreen>
           ),
           const SizedBox(height: 24),
 
-          // --- 3. Category Breakdown List ---
           Text(
             'Phân loại $title',
             style: Theme.of(context).textTheme.titleLarge,
@@ -201,7 +189,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               ),
               title: Text(entry.key),
               trailing: Text(
-                '${entry.value.toStringAsFixed(0)} đ',
+                CurrencyFormatter.format(entry.value), // <-- USE FORMATTER
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             );

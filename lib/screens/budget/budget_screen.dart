@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:personal_finance_app_flutter/models/budget_model.dart';
-// import 'package:personal_finance_app_flutter/models/transaction_model.dart'; // <-- REMOVED (unused)
 import 'package:personal_finance_app_flutter/routes.dart';
 import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
 import 'package:personal_finance_app_flutter/services/notification_service.dart';
+import 'package:personal_finance_app_flutter/utils/currency_formatter.dart'; // Import formatter
 import 'package:personal_finance_app_flutter/widgets/budget_card.dart';
 
 class BudgetScreen extends StatefulWidget {
@@ -16,8 +16,6 @@ class BudgetScreen extends StatefulWidget {
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
-  // We'll default to the current month, e.g., "11-2025"
-  // Make it final as requested by the linter
   final String _selectedMonthYear = DateFormat('MM-yyyy').format(DateTime.now());
 
   @override
@@ -31,13 +29,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final notificationService = NotificationService(dbService: dbService);
     final userName = user.displayName ?? user.email?.split('@').first ?? "User";
 
-    // --- THIS IS THE FIX ---
-    // The StreamBuilder was outside the SafeArea.
-    // It should be inside the child property.
     return Scaffold(
       body: SafeArea(
         child: StreamBuilder(
-          // 'stream' and 'builder' are properties of StreamBuilder, not SafeArea
           stream: dbService.getTransactionsByDateRange(
             DateTime(DateTime.now().year, DateTime.now().month, 1),
             DateTime(DateTime.now().year, DateTime.now().month + 1, 0),
@@ -47,7 +41,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
             return CustomScrollView(
               slivers: [
-                // 1. Header (Avatar, Greeting, Notification Bell)
                 SliverAppBar(
                   pinned: true,
                   backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -84,13 +77,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ],
                 ),
 
-                // 2. Budget Summary Card
                 StreamBuilder<List<Budget>>(
                   stream: dbService.getBudgetsStream(_selectedMonthYear),
                   builder: (context, budgetSnapshot) {
                     List<Budget> budgets = budgetSnapshot.data ?? [];
 
-                    // --- Notification Logic ---
                     if (budgetSnapshot.connectionState ==
                             ConnectionState.active &&
                         transactionSnapshot.connectionState ==
@@ -99,7 +90,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           budgets, allTransactions);
                     }
 
-                    // --- Calculate Summary ---
                     double totalBudget = budgets.fold(
                         0.0, (sum, budget) => sum + budget.amount);
                     double totalSpent = allTransactions
@@ -135,7 +125,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                "${totalBudget.toStringAsFixed(0)} đ",
+                                CurrencyFormatter.format(totalBudget), // <-- USE FORMATTER
                                 style: Theme.of(context)
                                     .textTheme
                                     .headlineMedium
@@ -147,13 +137,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                 minHeight: 10,
                                 borderRadius: BorderRadius.circular(5),
                                 color: Colors.green,
-                                // Fix for deprecated member
-                                backgroundColor:
-                                    Colors.green.withAlpha(51), // 20% opacity
+                                backgroundColor: Colors.green.withAlpha(51),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                "Còn lại ${remaining.toStringAsFixed(0)} đ",
+                                "Còn lại ${CurrencyFormatter.format(remaining)}", // <-- USE FORMATTER
                                 style: const TextStyle(
                                   color: Colors.green,
                                   fontWeight: FontWeight.bold,
@@ -167,7 +155,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   },
                 ),
 
-                // 3. Notification Toggle
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -178,7 +165,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         const Text("Thông báo tự động",
                             style: TextStyle(fontSize: 16)),
                         Switch(
-                          value: true, // TODO: Make this functional
+                          value: true, 
                           onChanged: (val) {},
                         ),
                       ],
@@ -186,7 +173,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ),
                 ),
 
-                // 4. Expense Categories List
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _SectionHeaderDelegate('Danh mục chi tiêu'),
@@ -199,8 +185,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           child: Center(child: CircularProgressIndicator()));
                     }
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      // --- THIS IS THE FIX ---
-                      // Center cannot have 'padding'. Wrap child in Padding.
                       return SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.all(32.0),
@@ -248,7 +232,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 }
 
-// Re-using the same sticky header delegate
 class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String title;
   _SectionHeaderDelegate(this.title);

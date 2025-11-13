@@ -3,6 +3,7 @@ import 'package:personal_finance_app_flutter/models/goal_model.dart';
 import 'package:personal_finance_app_flutter/routes.dart';
 import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
+import 'package:personal_finance_app_flutter/services/goal_notification_service.dart';
 import 'package:personal_finance_app_flutter/widgets/goal_card.dart';
 
 class SavingGoalsListScreen extends StatelessWidget {
@@ -12,10 +13,11 @@ class SavingGoalsListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
     if (user == null) {
-      // Should be handled by AuthWrapper, but as a fallback
       return const Scaffold(body: Center(child: Text("Please log in.")));
     }
     final dbService = DatabaseService(userId: user.uid);
+    // Initialize the new notification service
+    final goalNotificationService = GoalNotificationService(dbService: dbService);
 
     return Scaffold(
       appBar: AppBar(
@@ -38,12 +40,16 @@ class SavingGoalsListScreen extends StatelessWidget {
 
           final goals = snapshot.data!;
 
+          // --- RUN NOTIFICATION CHECK ---
+          // When the goals are loaded, check for deadlines
+          goalNotificationService.checkGoalDeadlines(goals);
+          // --- END OF CHECK ---
+
           return ListView.builder(
             itemCount: goals.length,
             itemBuilder: (context, index) {
               final goal = goals[index];
 
-              // Use Dismissible for delete functionality
               return Dismissible(
                 key: Key(goal.id!),
                 direction: DismissDirection.endToStart,
@@ -60,10 +66,17 @@ class SavingGoalsListScreen extends StatelessWidget {
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 child: GoalCard(
-                  goal: goal, // Pass the whole goal object
+                  goal: goal,
                   onTap: () {
-                    // Navigate to update screen, passing the goal
-                    Navigator.pushNamed(context, AppRoutes.updateGoal,
+                    // --- UPDATED NAVIGATION ---
+                    // Navigate to the new GoalDetailsScreen
+                    Navigator.pushNamed(context, AppRoutes.goalDetails,
+                        arguments: goal);
+                  },
+                  onEdit: () {
+                    // --- NEW EDIT FUNCTION ---
+                    // Navigate to the AddEditGoalScreen to edit
+                    Navigator.pushNamed(context, AppRoutes.addEditGoal,
                         arguments: goal);
                   },
                 ),
@@ -72,8 +85,6 @@ class SavingGoalsListScreen extends StatelessWidget {
           );
         },
       ),
-      // The FloatingActionButton is now managed by main_screen.dart
-      // No FAB here anymore
     );
   }
 }

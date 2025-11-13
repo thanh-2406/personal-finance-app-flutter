@@ -3,8 +3,9 @@ import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 import 'package:personal_finance_app_flutter/routes.dart';
 import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
-import 'package:intl/intl.dart'; 
-import 'package:collection/collection.dart'; 
+import 'package:intl/intl.dart';
+import 'package:collection/collection.dart';
+import 'package:personal_finance_app_flutter/utils/currency_formatter.dart'; // Import formatter
 import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -26,7 +27,6 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // 1. Header with Avatar and "Hello, [Username]"
             SliverAppBar(
               pinned: true,
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -59,12 +59,10 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
             
-            // 2. Account Summary Card
             SliverToBoxAdapter(
               child: _buildAccountSummaryCard(context, dbService),
             ),
 
-            // 3. Transaction History List
             SliverPersistentHeader(
               pinned: true,
               delegate: _SectionHeaderDelegate('Lịch sử giao dịch'),
@@ -76,7 +74,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Widget for the summary card
   Widget _buildAccountSummaryCard(BuildContext context, DatabaseService dbService) {
     return StreamBuilder<List<TransactionModel>>(
       stream: dbService.getTransactionsStream(),
@@ -111,7 +108,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${balance.toStringAsFixed(0)} đ', 
+                  CurrencyFormatter.format(balance), // <-- USE FORMATTER
                   style: Theme.of(context)
                       .textTheme
                       .headlineMedium
@@ -121,7 +118,7 @@ class HomeScreen extends StatelessWidget {
                 _buildBalanceBar(
                   context: context,
                   label: 'Thu nhập',
-                  amount: '${totalIncome.toStringAsFixed(0)} đ',
+                  amount: CurrencyFormatter.format(totalIncome), // <-- USE FORMATTER
                   progress: incomeProgress,
                   color: Colors.green,
                 ),
@@ -129,7 +126,7 @@ class HomeScreen extends StatelessWidget {
                 _buildBalanceBar(
                   context: context,
                   label: 'Chi tiêu',
-                  amount: '${totalExpense.toStringAsFixed(0)} đ',
+                  amount: CurrencyFormatter.format(totalExpense), // <-- USE FORMATTER
                   progress: expenseProgress,
                   color: Colors.red,
                 ),
@@ -141,7 +138,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Helper for Income/Expense bars
   Widget _buildBalanceBar({
     required BuildContext context,
     required String label,
@@ -162,7 +158,7 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 8),
         LinearProgressIndicator(
           value: progress,
-          backgroundColor: color.withAlpha(51), // 20% opacity (FIX)
+          backgroundColor: color.withAlpha(51), 
           color: color,
           minHeight: 10,
           borderRadius: BorderRadius.circular(5),
@@ -171,7 +167,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Widget for transaction list
   Widget _buildTransactionList(DatabaseService dbService) {
     final DateFormat dayFormatter = DateFormat('dd-MM-yyyy');
     final DateFormat displayFormatter = DateFormat('EEEE, dd/MM/yyyy', 'vi_VN');
@@ -185,8 +180,6 @@ class HomeScreen extends StatelessWidget {
           );
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          // --- THIS IS THE FIX ---
-          // Corrected typo from SliverToBoxBAdapter to SliverToBoxAdapter
           return const SliverToBoxAdapter( 
             child: Padding(
               padding: EdgeInsets.all(32.0),
@@ -230,7 +223,7 @@ class HomeScreen extends StatelessWidget {
                         title: Text(txn.category),
                         subtitle: Text(txn.notes),
                         trailing: Text(
-                          '${txn.type == 'income' ? '+' : '-'}${txn.amount.toStringAsFixed(0)} đ',
+                          '${txn.type == 'income' ? '+' : '-'}${CurrencyFormatter.format(txn.amount)}', // <-- USE FORMATTER
                           style: TextStyle(
                             color: txn.type == 'income' ? Colors.green : Colors.red,
                             fontWeight: FontWeight.bold,
@@ -248,7 +241,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// Helper delegate for sticky headers
 class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String title;
   _SectionHeaderDelegate(this.title);

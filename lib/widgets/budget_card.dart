@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:personal_finance_app_flutter/models/budget_model.dart';
 import 'package:personal_finance_app_flutter/models/transaction_model.dart';
+import 'package:personal_finance_app_flutter/utils/currency_formatter.dart'; // Import formatter
 import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 
 class BudgetCard extends StatelessWidget {
@@ -19,13 +20,11 @@ class BudgetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate spending for this budget's category
     final double spent = transactions
         .where((txn) => txn.type == 'expense')
         .fold(0.0, (sum, txn) => sum + txn.amount);
 
     final double progress = (budget.amount > 0) ? (spent / budget.amount) : 0.0;
-    final double remaining = budget.amount - spent;
     final int percentage = (progress * 100).toInt();
 
     String statusText;
@@ -50,12 +49,10 @@ class BudgetCard extends StatelessWidget {
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
-            // Icon
             CircleAvatar(
               child: CategoryIcon(category: budget.category),
             ),
             const SizedBox(width: 12),
-            // Middle section (Info)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +63,8 @@ class BudgetCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${spent.toStringAsFixed(0)} đ / ${budget.amount.toStringAsFixed(0)} đ',
+                    // --- USE CURRENCY FORMATTER ---
+                    '${CurrencyFormatter.format(spent)} / ${CurrencyFormatter.format(budget.amount)}',
                   ),
                   const SizedBox(height: 8),
                   LinearProgressIndicator(
@@ -84,7 +82,6 @@ class BudgetCard extends StatelessWidget {
                 ],
               ),
             ),
-            // Right side (Actions)
             Row(
               children: [
                 IconButton(

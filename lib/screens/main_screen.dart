@@ -37,8 +37,11 @@ class _MainScreenState extends State<MainScreen> {
         Navigator.pushNamed(context, AppRoutes.categorySelect);
         break;
       case 2: // Goals
-        Navigator.pushNamed(context, AppRoutes.addGoal);
+        // --- THIS IS THE FIX ---
+        // Navigate to the new AddEditGoalScreen (passing null for a new goal)
+        Navigator.pushNamed(context, AppRoutes.addEditGoal);
         break;
+      // --- END OF FIX ---
       case 3: // Budget
         Navigator.pushNamed(context, AppRoutes.addEditBudget);
         break;
@@ -61,8 +64,6 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8.0,
-        // --- THIS IS THE FIX ---
-        // Use a single Row with spaceAround to prevent overflow
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
@@ -73,7 +74,6 @@ class _MainScreenState extends State<MainScreen> {
             _buildNavItem(icon: Icons.account_balance, label: 'Ngân sách', index: 3),
           ],
         ),
-        // --- END OF FIX ---
       ),
     );
   }
@@ -89,9 +89,8 @@ class _MainScreenState extends State<MainScreen> {
     return InkWell(
       onTap: () => _onItemTapped(index),
       borderRadius: BorderRadius.circular(24),
-      // Reduced padding to prevent overflow
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
