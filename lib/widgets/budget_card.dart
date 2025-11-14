@@ -7,6 +7,7 @@ import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 class BudgetCard extends StatelessWidget {
   final Budget budget;
   final List<TransactionModel> transactions;
+  final VoidCallback onTap; // <-- NEW
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -14,6 +15,7 @@ class BudgetCard extends StatelessWidget {
     super.key,
     required this.budget,
     required this.transactions,
+    required this.onTap, // <-- NEW
     required this.onEdit,
     required this.onDelete,
   });
@@ -33,11 +35,11 @@ class BudgetCard extends StatelessWidget {
     if (percentage >= 100) {
       statusText = "Đã vượt ${percentage - 100}%";
       statusColor = Colors.red;
-    } else if (percentage >= 90) {
+    } else if (percentage >= 85) { // --- FIX: Changed from 90 to 85 ---
       statusText = "Sắp vượt $percentage%";
       statusColor = Colors.orange;
     } else {
-      statusText = "Còn lại ${100 - percentage}%";
+      statusText = "Đã chi $percentage%";
       statusColor = Colors.green;
     }
 
@@ -45,57 +47,62 @@ class BudgetCard extends StatelessWidget {
       elevation: 0,
       color: Colors.grey.shade100,
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              child: CategoryIcon(category: budget.category),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      // --- FIX: Wrap with InkWell for onTap ---
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12), // Match card's border radius
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              CircleAvatar(
+                child: CategoryIcon(category: budget.category),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      budget.category,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      // --- USE CURRENCY FORMATTER ---
+                      '${CurrencyFormatter.format(spent)} / ${CurrencyFormatter.format(budget.amount)}',
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      borderRadius: BorderRadius.circular(4),
+                      color: statusColor,
+                      backgroundColor: statusColor.withOpacity(0.2),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      statusText,
+                      style: TextStyle(color: statusColor, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
                 children: [
-                  Text(
-                    budget.category,
-                    style: Theme.of(context).textTheme.titleMedium,
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    onPressed: onEdit,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    // --- USE CURRENCY FORMATTER ---
-                    '${CurrencyFormatter.format(spent)} / ${CurrencyFormatter.format(budget.amount)}',
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    borderRadius: BorderRadius.circular(4),
-                    color: statusColor,
-                    backgroundColor: statusColor.withOpacity(0.2),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    statusText,
-                    style: TextStyle(color: statusColor, fontSize: 12),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    color: Colors.red.shade700,
+                    onPressed: onDelete,
                   ),
                 ],
               ),
-            ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 20),
-                  onPressed: onEdit,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  color: Colors.red.shade700,
-                  onPressed: onDelete,
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

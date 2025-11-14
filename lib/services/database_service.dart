@@ -15,6 +15,28 @@ class DatabaseService {
   // Path for user-specific data
   DocumentReference get userDocument => usersCollection.doc(userId);
 
+  // --- User Settings (NEW) ---
+  
+  // Document reference for user settings
+  DocumentReference get settingsDocument => userDocument.collection('settings').doc('userSettings');
+
+  // Get user notification settings stream
+  Stream<bool> getUserNotificationSettingsStream() {
+    return settingsDocument.snapshots().map((doc) {
+      if (doc.exists && (doc.data() as Map<String, dynamic>).containsKey('notificationsEnabled')) {
+        return (doc.data() as Map<String, dynamic>)['notificationsEnabled'] as bool;
+      }
+      return true; // Default to true if not set
+    });
+  }
+
+  // Update user notification settings
+  Future<void> updateUserNotificationSettings(bool isEnabled) {
+    return settingsDocument.set({
+      'notificationsEnabled': isEnabled,
+    }, SetOptions(merge: true)); // Merge to avoid overwriting other settings
+  }
+
   // --- Transactions ---
 
   CollectionReference get transactionsCollection =>

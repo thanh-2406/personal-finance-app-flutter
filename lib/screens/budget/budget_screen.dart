@@ -17,6 +17,30 @@ class BudgetScreen extends StatefulWidget {
 
 class _BudgetScreenState extends State<BudgetScreen> {
   final String _selectedMonthYear = DateFormat('MM-yyyy').format(DateTime.now());
+  late DatabaseService _dbService;
+  late NotificationService _notificationService;
+  String _userName = "User";
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = AuthService().currentUser;
+    if (user != null) {
+      _dbService = DatabaseService(userId: user.uid);
+      _notificationService = NotificationService(dbService: _dbService);
+      _userName = user.displayName ?? user.email?.split('@').first ?? "User";
+      
+      // Listen to notification settings
+      _dbService.getUserNotificationSettingsStream().listen((isEnabled) {
+        if (mounted) {
+          setState(() {
+            _notificationsEnabled = isEnabled;
+          });
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,14 +49,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
       return const Scaffold(body: Center(child: Text("Please log in.")));
     }
 
-    final dbService = DatabaseService(userId: user.uid);
-    final notificationService = NotificationService(dbService: dbService);
-    final userName = user.displayName ?? user.email?.split('@').first ?? "User";
-
     return Scaffold(
       body: SafeArea(
         child: StreamBuilder(
-          stream: dbService.getTransactionsByDateRange(
+          stream: _dbService.getTransactionsByDateRange(
             DateTime(DateTime.now().year, DateTime.now().month, 1),
             DateTime(DateTime.now().year, DateTime.now().month + 1, 0),
           ),
@@ -58,7 +78,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "Hi, $userName",
+                        "Hi, $_userName",
                         style: Theme.of(context)
                             .textTheme
                             .titleLarge
@@ -78,17 +98,20 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ),
 
                 StreamBuilder<List<Budget>>(
-                  stream: dbService.getBudgetsStream(_selectedMonthYear),
+                  stream: _dbService.getBudgetsStream(_selectedMonthYear),
                   builder: (context, budgetSnapshot) {
                     List<Budget> budgets = budgetSnapshot.data ?? [];
 
-                    if (budgetSnapshot.connectionState ==
+                    // --- FIX: Only check notifications if enabled ---
+                    if (_notificationsEnabled &&
+                        budgetSnapshot.connectionState ==
                             ConnectionState.active &&
                         transactionSnapshot.connectionState ==
                             ConnectionState.active) {
-                      notificationService.checkBudgets(
+                      _notificationService.checkBudgets(
                           budgets, allTransactions);
                     }
+                    // --- END OF FIX ---
 
                     double totalBudget = budgets.fold(
                         0.0, (sum, budget) => sum + budget.amount);
@@ -136,14 +159,16 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                 value: progress,
                                 minHeight: 10,
                                 borderRadius: BorderRadius.circular(5),
-                                color: Colors.green,
-                                backgroundColor: Colors.green.withAlpha(51),
+                                color: (progress > 1) ? Colors.red : (progress > 0.85) ? Colors.orange : Colors.green,
+                                backgroundColor: (progress > 1) ? Colors.red.withAlpha(51) : (progress > 0.85) ? Colors.orange.withAlpha(51) : Colors.green.withAlpha(51),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                "Còn lại ${CurrencyFormatter.format(remaining)}", // <-- USE FORMATTER
-                                style: const TextStyle(
-                                  color: Colors.green,
+                                (remaining < 0)
+                                    ? "Đã vượt ${CurrencyFormatter.format(remaining.abs())}"
+                                    : "Còn lại ${CurrencyFormatter.format(remaining)}",
+                                style: TextStyle(
+                                  color: (remaining < 0) ? Colors.red : Colors.green,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -164,10 +189,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       children: [
                         const Text("Thông báo tự động",
                             style: TextStyle(fontSize: 16)),
+                        // --- FIX: Functional Switch ---
                         Switch(
-                          value: true, 
-                          onChanged: (val) {},
+                          value: _notificationsEnabled, 
+                          onChanged: (val) {
+                            _dbService.updateUserNotificationSettings(val);
+                            // setState is handled by the stream listener
+                          },
                         ),
+                        // --- END OF FIX ---
                       ],
                     ),
                   ),
@@ -178,7 +208,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   delegate: _SectionHeaderDelegate('Danh mục chi tiêu'),
                 ),
                 StreamBuilder<List<Budget>>(
-                  stream: dbService.getBudgetsStream(_selectedMonthYear),
+                  stream: _dbService.getBudgetsStream(_selectedMonthYear),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const SliverToBoxAdapter(
@@ -208,13 +238,25 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           return BudgetCard(
                             budget: budget,
                             transactions: categoryTransactions,
+                            // --- FIX: Add onTap for details ---
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.budgetDetails,
+                                arguments: {
+                                  'budget': budget,
+                                  'transactions': categoryTransactions,
+                                },
+                              );
+                            },
+                            // --- END OF FIX ---
                             onEdit: () {
                               Navigator.pushNamed(
                                   context, AppRoutes.addEditBudget,
                                   arguments: budget);
                             },
                             onDelete: () {
-                              dbService.deleteBudget(budget.id!);
+                              _dbService.deleteBudget(budget.id!);
                             },
                           );
                         },

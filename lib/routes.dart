@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:personal_finance_app_flutter/models/budget_model.dart';
 import 'package:personal_finance_app_flutter/models/goal_model.dart';
+import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 import 'package:personal_finance_app_flutter/screens/auth/forgot_password_screen.dart';
 import 'package:personal_finance_app_flutter/screens/auth/login_screen.dart';
 import 'package:personal_finance_app_flutter/screens/auth/otp_verification_screen.dart';
@@ -8,6 +9,7 @@ import 'package:personal_finance_app_flutter/screens/auth/reset_password_screen.
 import 'package:personal_finance_app_flutter/screens/auth/signup_screen.dart';
 import 'package:personal_finance_app_flutter/screens/auth_wrapper.dart';
 import 'package:personal_finance_app_flutter/screens/budget/add_edit_budget_screen.dart';
+import 'package:personal_finance_app_flutter/screens/budget/budget_details_screen.dart';
 import 'package:personal_finance_app_flutter/screens/budget/budget_screen.dart';
 import 'package:personal_finance_app_flutter/screens/dashboard/home_screen.dart';
 import 'package:personal_finance_app_flutter/screens/dashboard/reports_screen.dart';
@@ -42,7 +44,6 @@ class AppRoutes {
   static const String reports = '/reports'; 
 
   static const String goalsList = '/goals'; 
-  // NEW/RENAMED ROUTES
   static const String addEditGoal = '/add_edit_goal';
   static const String goalDetails = '/goal_details';
 
@@ -52,11 +53,7 @@ class AppRoutes {
 
   static const String budget = '/budget';
   static const String addEditBudget = '/add_edit_budget';
-
-  // Old goal routes (we'll remove them)
-  // static const String addGoal = '/add_goal';
-  // static const String updateGoal = '/update_goal';
-
+  static const String budgetDetails = '/budget_details'; // <-- NEW ROUTE
 
   // Route Generator
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -93,11 +90,9 @@ class AppRoutes {
       case goalsList:
         return MaterialPageRoute(builder: (_) => const SavingGoalsListScreen());
       case addEditGoal:
-        // Pass the Goal object if editing, or null if adding
         final goal = settings.arguments as Goal?;
         return MaterialPageRoute(builder: (_) => AddEditGoalScreen(goal: goal));
       case goalDetails:
-        // Pass the Goal object to the details screen
         final goal = settings.arguments as Goal;
         return MaterialPageRoute(builder: (_) => GoalDetailsScreen(goal: goal));
 
@@ -123,6 +118,18 @@ class AppRoutes {
       case addEditBudget:
         final budget = settings.arguments as Budget?;
         return MaterialPageRoute(builder: (_) => AddEditBudgetScreen(budget: budget));
+      // --- NEW CASE ---
+      case budgetDetails:
+        final args = settings.arguments as Map<String, dynamic>;
+        final budget = args['budget'] as Budget;
+        final transactions = args['transactions'] as List<TransactionModel>;
+        return MaterialPageRoute(
+          builder: (_) => BudgetDetailsScreen(
+            budget: budget,
+            transactions: transactions,
+          ),
+        );
+      // --- END OF NEW CASE ---
 
       default:
         return MaterialPageRoute(

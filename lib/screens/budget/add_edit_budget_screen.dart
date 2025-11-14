@@ -23,17 +23,16 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
   // We'll hardcode the month for now to the current month
   final String _monthYear = DateFormat('MM-yyyy').format(DateTime.now());
 
-  // Dummy list of categories. In a real app, this might come from a DB
+  // --- FIX: Use the same categories as transaction screen ---
   final List<String> _expenseCategories = [
-    'Ăn uống',
-    'Du lịch',
-    'Chữa bệnh',
-    'Di chuyển',
-    'Mua sắm',
-    'Giải trí',
-    'Hoá đơn',
-    'Khác'
+    'Food',
+    'Health',
+    'Travel',
+    'Shopping',
+    'Bills',
+    'Other'
   ];
+  // --- END OF FIX ---
 
   @override
   void initState() {

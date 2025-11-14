@@ -3,6 +3,7 @@ import 'package:personal_finance_app_flutter/models/budget_model.dart';
 import 'package:personal_finance_app_flutter/models/notification_model.dart';
 import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
+import 'package:personal_finance_app_flutter/utils/currency_formatter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:collection/collection.dart'; // Import collection package
 
@@ -29,35 +30,54 @@ class NotificationService {
     // Check each budget against the spending
     for (final budget in budgets) {
       final double spent = categorySpending[budget.category] ?? 0.0;
+      // Ensure budget amount is not zero to avoid division by zero
+      if (budget.amount == 0) continue;
+
       final double percentage = (spent / budget.amount) * 100;
+
+      // --- FIX: Implement 70%, 85%, 100% logic ---
 
       // --- 1. Check for EXCEEDED budget ---
       if (percentage >= 100) {
         final double overAmount = spent - budget.amount;
         final notification = AppNotification(
           id: const Uuid().v4(), // Generate a unique ID
-          title: "Đã vượt quá ngân sách!",
+          title: "ĐÃ VƯỢT NGÂN SÁCH!",
           body:
-              "Bạn đã vượt quá ngân sách cho '${budget.category}' ${overAmount.toStringAsFixed(0)} đ (${percentage.toStringAsFixed(0)}%).",
-          type: NotificationType.exceeded,
+              "Bạn đã vượt quá ngân sách cho '${budget.category}' ${CurrencyFormatter.format(overAmount)} (${percentage.toStringAsFixed(0)}%).",
+          type: NotificationType.exceeded, // Red warning
           createdAt: Timestamp.now(),
         );
         // Add to database
         await dbService.addNotification(notification);
       }
-      // --- 2. Check for WARNING (90% or more) ---
-      else if (percentage >= 90) {
+      // --- 2. Check for Strong WARNING (85% or more) ---
+      else if (percentage >= 85) {
         final notification = AppNotification(
           id: const Uuid().v4(), // Generate a unique ID
-          title: "Sắp vượt ngân sách!",
+          title: "Cảnh báo ngân sách!",
           body:
               "Bạn đã chi ${percentage.toStringAsFixed(0)}% ngân sách cho '${budget.category}'. Hãy cẩn thận!",
-          type: NotificationType.warning,
+          type: NotificationType.warning, // Strong warning
           createdAt: Timestamp.now(),
         );
         // Add to database
         await dbService.addNotification(notification);
       }
+      // --- 3. Check for Mild WARNING (70% or more) ---
+      else if (percentage >= 70) {
+         final notification = AppNotification(
+          id: const Uuid().v4(), // Generate a unique ID
+          title: "Thông báo ngân sách",
+          body:
+              "Bạn đã chi ${percentage.toStringAsFixed(0)}% ngân sách cho '${budget.category}'.",
+          type: NotificationType.warning, // Mild warning
+          createdAt: Timestamp.now(),
+        );
+        // Add to database
+        await dbService.addNotification(notification);
+      }
+      // --- END OF FIX ---
     }
   }
 }
