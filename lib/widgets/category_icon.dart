@@ -9,28 +9,36 @@ class CategoryIcon extends StatelessWidget {
   // Helper function to get an icon for a category
   static IconData getIcon(String category) {
     switch (category) {
-      case 'Ăn uống':
+      // --- FIX: Changed to English keys ---
+      case 'Food':
         return Icons.fastfood_outlined;
-      case 'Du lịch':
+      case 'Travel':
         return Icons.flight_takeoff_outlined;
-      case 'Chữa bệnh':
+      case 'Health':
         return Icons.medical_services_outlined;
-      case 'Di chuyển':
+      case 'Transport': // Assuming 'Di chuyển' maps to 'Transport' or similar
         return Icons.directions_bus_outlined;
-      case 'Mua sắm':
+      case 'Shopping':
         return Icons.shopping_cart_outlined;
-      case 'Giải trí':
+      case 'Entertainment': // Assuming 'Giải trí'
         return Icons.movie_outlined;
-      case 'Hoá đơn':
+      case 'Bills':
         return Icons.receipt_long_outlined;
-      case 'Lương':
+      case 'Salary':
         return Icons.work_outline;
       case 'Freelance':
         return Icons.computer_outlined;
-      case 'Quà tặng':
+      case 'Gift':
         return Icons.card_giftcard_outlined;
-      case 'Khác':
+      // --- FIX: Added specific goal category ---
+      case 'Goal': // For goal-related transactions
+        return Icons.savings_outlined;
+      case 'Other':
       default:
+        // Handle 'Mục tiêu: ...' category
+        if (category.startsWith('Mục tiêu:')) {
+          return Icons.savings_outlined;
+        }
         return Icons.more_horiz_outlined;
     }
   }
@@ -38,28 +46,36 @@ class CategoryIcon extends StatelessWidget {
   // Helper function to get a consistent color for a category
   static Color getColor(String category) {
     switch (category) {
-      case 'Ăn uống':
+      // --- FIX: Changed to English keys ---
+      case 'Food':
         return Colors.red;
-      case 'Du lịch':
+      case 'Travel':
         return Colors.blue;
-      case 'Chữa bệnh':
+      case 'Health':
         return Colors.green;
-      case 'Di chuyển':
+      case 'Transport':
         return Colors.orange;
-      case 'Mua sắm':
+      case 'Shopping':
         return Colors.purple;
-      case 'Giải trí':
+      case 'Entertainment':
         return Colors.teal;
-      case 'Hoá đơn':
+      case 'Bills':
         return Colors.cyan;
-      case 'Lương':
+      case 'Salary':
         return Colors.lightGreen;
       case 'Freelance':
         return Colors.indigo;
-      case 'Quà tặng':
+      case 'Gift':
         return Colors.pink;
-      case 'Khác':
+      // --- FIX: Added specific goal category ---
+      case 'Goal':
+        return Colors.amber;
+      case 'Other':
       default:
+        // Handle 'Mục tiêu: ...' category
+        if (category.startsWith('Mục tiêu:')) {
+          return Colors.amber;
+        }
         return Colors.grey;
     }
   }
@@ -68,7 +84,7 @@ class CategoryIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Icon(
       getIcon(category),
-      color: color, // Use provided color, or default from Theme
+      color: color ?? getColor(category), // Use specific color OR default category color
     );
   }
 }

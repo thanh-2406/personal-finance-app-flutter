@@ -49,14 +49,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: () {
-                    // TODO: Implement new function (e.g., filter, settings)
-                  },
-                ),
-              ],
+              // --- FIX: Removed the empty actions button ---
             ),
             
             SliverToBoxAdapter(
@@ -218,6 +211,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                   ...items.map((txn) => ListTile(
                         leading: CircleAvatar(
+                          // --- This will now use the fixed CategoryIcon ---
                           child: CategoryIcon(category: txn.category),
                         ),
                         title: Text(txn.category),

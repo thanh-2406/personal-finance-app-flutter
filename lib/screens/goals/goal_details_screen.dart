@@ -6,10 +6,7 @@ import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
 import 'package:personal_finance_app_flutter/utils/currency_formatter.dart';
-// --- FIX 1: Add missing import ---
 import 'package:personal_finance_app_flutter/widgets/custom_text_field.dart';
-// --- FIX 2: Remove unused import ---
-// import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 
 class GoalDetailsScreen extends StatefulWidget {
   final Goal goal;
@@ -25,7 +22,7 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // Function to show the "Add/Subtract" dialog
-  void _showUpdateDialog(bool isAdding) {
+  void _showUpdateDialog(bool isAdding, Goal currentGoal) {
     _amountController.clear();
     showDialog(
       context: context,
@@ -34,7 +31,7 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
           title: Text(isAdding ? 'Thêm tiền vào mục tiêu' : 'Rút tiền từ mục tiêu'),
           content: Form(
             key: _formKey,
-            child: CustomTextField( // This will now be found
+            child: CustomTextField(
               controller: _amountController,
               hintText: 'Số tiền',
               keyboardType: TextInputType.number,
@@ -44,7 +41,7 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
                 if (double.tryParse(val) == null || double.parse(val) <= 0) {
                   return 'Số tiền không hợp lệ';
                 }
-                if (!isAdding && double.parse(val) > widget.goal.currentAmount) {
+                if (!isAdding && double.parse(val) > currentGoal.currentAmount) {
                   return 'Số tiền rút vượt quá số tiền hiện có';
                 }
                 return null;
@@ -60,7 +57,8 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
                   final amount = double.parse(_amountController.text);
-                  _updateGoalSaving(amount, isAdding: isAdding);
+                  // Pass the 'currentGoal' from the stream to update from
+                  _updateGoalSaving(amount, currentGoal: currentGoal, isAdding: isAdding);
                   Navigator.pop(context);
                 }
               },
@@ -73,7 +71,7 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
   }
 
   // Function to update the goal AND create a transaction
-  Future<void> _updateGoalSaving(double amount, {required bool isAdding}) async {
+  Future<void> _updateGoalSaving(double amount, {required Goal currentGoal, required bool isAdding}) async {
     final user = AuthService().currentUser;
     if (user == null) return;
     
@@ -81,21 +79,17 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
 
     try {
       // 1. Update the goal's current amount
-      // We must get the latest goal data in case it changed
-      final latestGoalDoc = await dbService.goalsCollection.doc(widget.goal.id).get();
-      final latestGoal = Goal.fromJson(latestGoalDoc);
-      
       final newCurrentAmount = isAdding
-          ? latestGoal.currentAmount + amount
-          : latestGoal.currentAmount - amount;
+          ? currentGoal.currentAmount + amount
+          : currentGoal.currentAmount - amount;
 
       await dbService.updateGoal(
-        latestGoal.copyWith(currentAmount: newCurrentAmount),
+        currentGoal.copyWith(currentAmount: newCurrentAmount),
       );
 
       // 2. Create a corresponding transaction
       final transaction = TransactionModel(
-        category: 'Mục tiêu: ${latestGoal.name}',
+        category: 'Mục tiêu: ${currentGoal.name}',
         type: isAdding ? 'expense' : 'income', 
         amount: amount,
         date: Timestamp.now(),
@@ -123,149 +117,171 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
       appBar: AppBar(
         title: Text(widget.goal.name),
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: DatabaseService(userId: AuthService().currentUser!.uid)
-            .goalsCollection
-            .doc(widget.goal.id)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          final Goal goal = Goal.fromJson(snapshot.data!);
-          final progress = (goal.targetAmount > 0) 
-              ? (goal.currentAmount / goal.targetAmount) 
-              : 0.0;
-          final bool isCompleted = progress >= 1.0;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Progress Card
-                Card(
-                  color: isCompleted ? Colors.green.shade50 : Colors.white,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        if (isCompleted)
-                          Text(
-                            'ĐÃ HOÀN THÀNH MỤC TIÊU!',
-                            style: TextStyle(
-                              color: Colors.green.shade700,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          )
-                        else
-                          Text(
-                            '${(progress * 100).toStringAsFixed(0)}%',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        const SizedBox(height: 16),
-                        LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 12,
-                          borderRadius: BorderRadius.circular(6),
-                          color: isCompleted ? Colors.green : Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Đã tiết kiệm',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                            Text(
-                              'Mục tiêu',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              CurrencyFormatter.format(goal.currentAmount),
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              CurrencyFormatter.format(goal.targetAmount),
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // 2. Info Section
-                if (goal.deadline != null)
-                  ListTile(
-                    leading: const Icon(Icons.calendar_today_outlined),
-                    title: const Text('Ngày hết hạn'),
-                    subtitle: Text(DateFormat('dd/MM/yyyy').format(goal.deadline!.toDate())),
-                  ),
-                if (goal.isImportant)
-                  const ListTile(
-                    leading: Icon(Icons.star_outlined, color: Colors.amber),
-                    title: Text('Mục tiêu quan trọng'),
-                  ),
-                const Divider(),
-                
-                // 3. Action Buttons
-                if (!isCompleted)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showUpdateDialog(false),
-                          icon: const Icon(Icons.remove),
-                          label: const Text('Rút tiền'),
-                          style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _showUpdateDialog(true),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Thêm tiền'),
-                          style: ElevatedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              backgroundColor: Colors.green),
-                        ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 24),
-                
-                // 4. Transaction History
-                Text(
-                  'Lịch sử giao dịch mục tiêu',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                _buildGoalTransactionList(context, goal.name),
-              ],
+      // --- FIX: Refactored to prevent flicker ---
+      // The SingleChildScrollView is now the base
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Progress Card (now in its own StreamBuilder)
+            _buildGoalProgressCard(context),
+            
+            const SizedBox(height: 16),
+            
+            // 2. Info Section (static)
+            if (widget.goal.deadline != null)
+              ListTile(
+                leading: const Icon(Icons.calendar_today_outlined),
+                title: const Text('Ngày hết hạn'),
+                subtitle: Text(DateFormat('dd/MM/yyyy').format(widget.goal.deadline!.toDate())),
+              ),
+            if (widget.goal.isImportant)
+              const ListTile(
+                leading: Icon(Icons.star_outlined, color: Colors.amber),
+                title: Text('Mục tiêu quan trọng'),
+              ),
+            const Divider(),
+            
+            // 3. Action Buttons are now inside _buildGoalProgressCard
+            
+            const SizedBox(height: 24),
+            
+            // 4. Transaction History (in its own StreamBuilder, now stable)
+            Text(
+              'Lịch sử giao dịch mục tiêu',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-          );
-        },
+            _buildGoalTransactionList(context, widget.goal.name),
+          ],
+        ),
       ),
     );
   }
+
+  // --- NEW WIDGET: Handles dynamic goal progress and buttons ---
+  Widget _buildGoalProgressCard(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: DatabaseService(userId: AuthService().currentUser!.uid)
+          .goalsCollection
+          .doc(widget.goal.id)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+        
+        final Goal goal = Goal.fromJson(snapshot.data!);
+        final progress = (goal.targetAmount > 0) 
+            ? (goal.currentAmount / goal.targetAmount) 
+            : 0.0;
+        final bool isCompleted = progress >= 1.0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Card(
+              color: isCompleted ? Colors.green.shade50 : Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    if (isCompleted)
+                      Text(
+                        'ĐÃ HOÀN THÀNH MỤC TIÊU!',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      )
+                    else
+                      Text(
+                        '${(progress * 100).toStringAsFixed(0)}%',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 12,
+                      borderRadius: BorderRadius.circular(6),
+                      color: isCompleted ? Colors.green : Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Đã tiết kiệm',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Text(
+                          'Mục tiêu',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          CurrencyFormatter.format(goal.currentAmount),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          CurrencyFormatter.format(goal.targetAmount),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Action Buttons
+            if (!isCompleted)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showUpdateDialog(false, goal),
+                      icon: const Icon(Icons.remove),
+                      label: const Text('Rút tiền'),
+                      style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showUpdateDialog(true, goal),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Thêm tiền'),
+                      style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.green),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+  // --- END OF NEW WIDGET ---
 
   Widget _buildGoalTransactionList(BuildContext context, String goalName) {
     final dbService = DatabaseService(userId: AuthService().currentUser!.uid);
@@ -281,7 +297,11 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
               .toList()),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          // Changed to a smaller indicator since it's part of a list
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: CircularProgressIndicator(),
+          ));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(
