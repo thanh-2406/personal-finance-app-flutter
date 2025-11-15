@@ -1,16 +1,29 @@
+// =======================================================================
+// lib/models/budget_model.dart
+// (UPDATED)
+// =======================================================================
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:personal_finance_app_flutter/models/budget_period.dart';
 
 class Budget {
   String? id;
   String category;
   double amount;
-  String monthYear; // Format: "MM-YYYY" e.g., "11-2025"
+  
+  // --- UPDATED FIELDS ---
+  BudgetPeriod period;    // e.g., daily, weekly, monthly, custom
+  Timestamp startDate;    // The start date of this budget period
+  Timestamp? endDate;     // The end date (null for daily, weekly, monthly)
+  // --- END OF UPDATE ---
 
   Budget({
     this.id,
     required this.category,
     required this.amount,
-    required this.monthYear,
+    required this.period,
+    required this.startDate,
+    this.endDate,
   });
 
   // Convert to a map for Firestore
@@ -18,11 +31,12 @@ class Budget {
     return {
       'category': category,
       'amount': amount,
-      'monthYear': monthYear,
+      'period': period.name, // Save enum as a string
+      'startDate': startDate,
+      'endDate': endDate,
     };
   }
 
-  // --- THIS IS THE FIX ---
   // Create from a Firestore DocumentSnapshot
   factory Budget.fromJson(DocumentSnapshot doc) {
     Map<String, dynamic> map = doc.data() as Map<String, dynamic>;
@@ -30,7 +44,11 @@ class Budget {
       id: doc.id,
       category: map['category'],
       amount: (map['amount'] as num).toDouble(),
-      monthYear: map['monthYear'],
+      // --- UPDATED FIELDS ---
+      period: periodFromString(map['period']), // Use helper
+      startDate: map['startDate'] as Timestamp,
+      endDate: map['endDate'] as Timestamp?,
+      // --- END OF UPDATE ---
     );
   }
 
@@ -39,13 +57,17 @@ class Budget {
     String? id,
     String? category,
     double? amount,
-    String? monthYear,
+    BudgetPeriod? period,
+    Timestamp? startDate,
+    Timestamp? endDate,
   }) {
     return Budget(
       id: id ?? this.id,
       category: category ?? this.category,
       amount: amount ?? this.amount,
-      monthYear: monthYear ?? this.monthYear,
+      period: period ?? this.period,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
     );
   }
 }

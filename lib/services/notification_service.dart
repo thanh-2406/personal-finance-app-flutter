@@ -1,11 +1,18 @@
+// =======================================================================
+// lib/services/notification_service.dart
+// (UPDATED)
+// =======================================================================
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:personal_finance_app_flutter/models/budget_model.dart';
 import 'package:personal_finance_app_flutter/models/notification_model.dart';
 import 'package:personal_finance_app_flutter/models/transaction_model.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
-import 'package:personal_finance_app_flutter/utils/currency_formatter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:collection/collection.dart'; // Import collection package
+import 'package:collection/collection.dart'; 
+// --- NEW: Add missing import ---
+import 'package:personal_finance_app_flutter/utils/currency_formatter.dart';
+// --- END OF NEW ---
 
 class NotificationService {
   final DatabaseService dbService;
@@ -13,7 +20,7 @@ class NotificationService {
 
   // Main function to check all budgets and create alerts
   Future<void> checkBudgets(
-    List<Budget> budgets,
+    List<Budget> budgets, // This list is pre-filtered by budget_screen
     List<TransactionModel> transactions,
   ) async {
     if (budgets.isEmpty) return;

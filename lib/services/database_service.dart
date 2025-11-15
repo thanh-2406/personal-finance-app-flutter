@@ -1,3 +1,8 @@
+// =======================================================================
+// lib/services/database_service.dart
+// (UPDATED)
+// =======================================================================
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:personal_finance_app_flutter/models/budget_model.dart';
 import 'package:personal_finance_app_flutter/models/goal_model.dart';
@@ -51,19 +56,22 @@ class DatabaseService {
   Stream<List<TransactionModel>> getTransactionsStream() {
     return transactionsCollection.orderBy('date', descending: true).snapshots().map(
         (snapshot) => snapshot.docs
-            .map((doc) => TransactionModel.fromJson(doc)) // <-- FIX HERE
+            .map((doc) => TransactionModel.fromJson(doc)) 
             .toList());
   }
 
   // Get transactions within a date range (for statistics)
   Stream<List<TransactionModel>> getTransactionsByDateRange(DateTime start, DateTime end) {
+    // Ensure the end time includes the whole day
+    final inclusiveEnd = DateTime(end.year, end.month, end.day, 23, 59, 59);
+
     return transactionsCollection
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(inclusiveEnd))
         .orderBy('date', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => TransactionModel.fromJson(doc)) // <-- FIX HERE
+            .map((doc) => TransactionModel.fromJson(doc)) 
             .toList());
   }
 
@@ -85,7 +93,7 @@ class DatabaseService {
   Stream<List<Goal>> getGoalsStream() {
     return goalsCollection.snapshots().map(
         (snapshot) =>
-            snapshot.docs.map((doc) => Goal.fromJson(doc)).toList()); // <-- FIX HERE
+            snapshot.docs.map((doc) => Goal.fromJson(doc)).toList()); 
   }
 
   // Update a goal
@@ -98,7 +106,7 @@ class DatabaseService {
     return goalsCollection.doc(goalId).delete();
   }
 
-  // --- Budgets (NEW) ---
+  // --- Budgets (UPDATED) ---
 
   CollectionReference get budgetsCollection => userDocument.collection('budgets');
 
@@ -107,14 +115,15 @@ class DatabaseService {
     return budgetsCollection.add(budget.toJson());
   }
 
-  // Get budgets for a specific month (e.g., "11-2025")
-  Stream<List<Budget>> getBudgetsStream(String monthYear) {
+  // Get ALL budgets, ordered by start date
+  Stream<List<Budget>> getBudgetsStream() {
     return budgetsCollection
-        .where('monthYear', isEqualTo: monthYear)
+        .orderBy('startDate', descending: true)
         .snapshots()
         .map((snapshot) =>
-            snapshot.docs.map((doc) => Budget.fromJson(doc)).toList()); // <-- FIX HERE
+            snapshot.docs.map((doc) => Budget.fromJson(doc)).toList());
   }
+  // --- END OF UPDATE ---
 
   // Update a budget
   Future<void> updateBudget(Budget budget) {
@@ -144,7 +153,7 @@ class DatabaseService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => AppNotification.fromJson(doc)) // <-- FIX HERE
+            .map((doc) => AppNotification.fromJson(doc)) 
             .toList());
   }
 

@@ -1,13 +1,20 @@
+// =======================================================================
+// lib/widgets/budget_card.dart
+// (UPDATED)
+// =======================================================================
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:personal_finance_app_flutter/models/budget_model.dart';
+import 'package:personal_finance_app_flutter/models/budget_period.dart';
 import 'package:personal_finance_app_flutter/models/transaction_model.dart';
-import 'package:personal_finance_app_flutter/utils/currency_formatter.dart'; // Import formatter
+import 'package:personal_finance_app_flutter/utils/currency_formatter.dart'; 
 import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 
 class BudgetCard extends StatelessWidget {
   final Budget budget;
   final List<TransactionModel> transactions;
-  final VoidCallback onTap; // <-- NEW
+  final VoidCallback onTap; 
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -15,10 +22,25 @@ class BudgetCard extends StatelessWidget {
     super.key,
     required this.budget,
     required this.transactions,
-    required this.onTap, // <-- NEW
+    required this.onTap, 
     required this.onEdit,
     required this.onDelete,
   });
+
+  // --- NEW: Helper to format the period text ---
+  String _getPeriodText() {
+    final formatter = DateFormat('dd/MM');
+    switch (budget.period) {
+      case BudgetPeriod.daily:
+        return 'Hôm nay (${formatter.format(budget.startDate.toDate())})';
+      case BudgetPeriod.weekly:
+        return 'Tuần này (${formatter.format(budget.startDate.toDate())} - ${formatter.format(budget.endDate!.toDate())})';
+      case BudgetPeriod.monthly:
+        return 'Tháng ${DateFormat('MM/yyyy').format(budget.startDate.toDate())}';
+      case BudgetPeriod.custom:
+         return '${formatter.format(budget.startDate.toDate())} - ${formatter.format(budget.endDate!.toDate())}';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +57,7 @@ class BudgetCard extends StatelessWidget {
     if (percentage >= 100) {
       statusText = "Đã vượt ${percentage - 100}%";
       statusColor = Colors.red;
-    } else if (percentage >= 85) { // --- FIX: Changed from 90 to 85 ---
+    } else if (percentage >= 85) { 
       statusText = "Sắp vượt $percentage%";
       statusColor = Colors.orange;
     } else {
@@ -47,10 +69,9 @@ class BudgetCard extends StatelessWidget {
       elevation: 0,
       color: Colors.grey.shade100,
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-      // --- FIX: Wrap with InkWell for onTap ---
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12), // Match card's border radius
+        borderRadius: BorderRadius.circular(12), 
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Row(
@@ -67,9 +88,15 @@ class BudgetCard extends StatelessWidget {
                       budget.category,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
+                    // --- NEW: Show period text ---
+                    const SizedBox(height: 4),
+                    Text(
+                      _getPeriodText(),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    // --- END OF NEW ---
                     const SizedBox(height: 8),
                     Text(
-                      // --- USE CURRENCY FORMATTER ---
                       '${CurrencyFormatter.format(spent)} / ${CurrencyFormatter.format(budget.amount)}',
                     ),
                     const SizedBox(height: 8),

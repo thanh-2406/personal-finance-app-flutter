@@ -1,3 +1,8 @@
+// =======================================================================
+// lib/screens/budget/budget_details_screen.dart
+// (UPDATED)
+// =======================================================================
+
 import 'package:flutter/material.dart';
 import 'package:personal_finance_app_flutter/models/budget_model.dart';
 import 'package:personal_finance_app_flutter/models/transaction_model.dart';
@@ -7,7 +12,7 @@ import 'package:intl/intl.dart';
 
 class BudgetDetailsScreen extends StatelessWidget {
   final Budget budget;
-  final List<TransactionModel> transactions;
+  final List<TransactionModel> transactions; // These are pre-filtered by budget_screen
 
   const BudgetDetailsScreen({
     super.key,
@@ -17,6 +22,7 @@ class BudgetDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // This list is already filtered, so we just sum them up
     final double spent = transactions
         .where((txn) => txn.type == 'expense')
         .fold(0.0, (sum, txn) => sum + txn.amount);
@@ -91,6 +97,7 @@ class BudgetDetailsScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     _buildDetailRow(
                       context,
+      
                       'Số tiền còn lại:',
                       CurrencyFormatter.format(remaining),
                       color: remaining < 0 ? Colors.red : Colors.green,
@@ -119,17 +126,18 @@ class BudgetDetailsScreen extends StatelessWidget {
                 itemCount: transactions.length,
                 itemBuilder: (context, index) {
                   final txn = transactions[index];
+                  // All transactions here are expenses
                   return ListTile(
-                    leading: Icon(
-                      txn.type == 'income' ? Icons.add_circle : Icons.remove_circle,
-                      color: txn.type == 'income' ? Colors.green : Colors.red,
+                    leading: const Icon(
+                      Icons.remove_circle,
+                      color: Colors.red,
                     ),
                     title: Text(txn.notes.isNotEmpty ? txn.notes : txn.category),
                     subtitle: Text(DateFormat('dd/MM/yyyy').format(txn.date.toDate())),
                     trailing: Text(
-                      '${txn.type == 'income' ? '+' : '-'}${CurrencyFormatter.format(txn.amount)}',
-                      style: TextStyle(
-                        color: txn.type == 'income' ? Colors.green : Colors.red,
+                      '-${CurrencyFormatter.format(txn.amount)}',
+                      style: const TextStyle(
+                        color: Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

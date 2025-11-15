@@ -30,19 +30,14 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onFabPressed() {
     switch (_selectedIndex) {
-      case 0: // Home
+      case 0:
+      case 1:
         Navigator.pushNamed(context, AppRoutes.categorySelect);
         break;
-      case 1: // Statistics
-        Navigator.pushNamed(context, AppRoutes.categorySelect);
-        break;
-      case 2: // Goals
-        // --- THIS IS THE FIX ---
-        // Navigate to the new AddEditGoalScreen (passing null for a new goal)
+      case 2:
         Navigator.pushNamed(context, AppRoutes.addEditGoal);
         break;
-      // --- END OF FIX ---
-      case 3: // Budget
+      case 3:
         Navigator.pushNamed(context, AppRoutes.addEditBudget);
         break;
     }
@@ -55,24 +50,34 @@ class _MainScreenState extends State<MainScreen> {
         index: _selectedIndex,
         children: _widgetOptions,
       ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: _onFabPressed,
         child: const Icon(Icons.add),
         shape: const CircleBorder(),
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            _buildNavItem(icon: Icons.wallet, label: 'Ví tiền', index: 0),
-            _buildNavItem(icon: Icons.pie_chart, label: 'Thống kê', index: 1),
-            const SizedBox(width: 40), // The gap for the FAB
-            _buildNavItem(icon: Icons.track_changes, label: 'Mục tiêu', index: 2),
-            _buildNavItem(icon: Icons.account_balance, label: 'Ngân sách', index: 3),
-          ],
+
+      bottomNavigationBar: SafeArea(               // <--- FIX QUAN TRỌNG
+        child: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0,
+          child: SizedBox(
+            height: 60,                             // <--- CHUẨN, KHÔNG OVERFLOW
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                _buildNavItem(icon: Icons.wallet, label: 'Ví tiền', index: 0),
+                _buildNavItem(icon: Icons.pie_chart, label: 'Thống kê', index: 1),
+
+                const SizedBox(width: 55),          // <--- TĂNG CHO FAB, TRÁNH LỖI
+
+                _buildNavItem(icon: Icons.track_changes, label: 'Mục tiêu', index: 2),
+                _buildNavItem(icon: Icons.account_balance, label: 'Ngân sách', index: 3),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -89,14 +94,19 @@ class _MainScreenState extends State<MainScreen> {
     return InkWell(
       onTap: () => _onItemTapped(index),
       borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), // <--- NHỎ HƠN
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: color),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 12)),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(color: color, fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
           ],
         ),
       ),
