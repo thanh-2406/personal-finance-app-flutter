@@ -21,7 +21,6 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
   final _amountController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // Function to show the "Add/Subtract" dialog
   void _showUpdateDialog(bool isAdding, Goal currentGoal) {
     _amountController.clear();
     showDialog(
@@ -57,7 +56,6 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
                   final amount = double.parse(_amountController.text);
-                  // Pass the 'currentGoal' from the stream to update from
                   _updateGoalSaving(amount, currentGoal: currentGoal, isAdding: isAdding);
                   Navigator.pop(context);
                 }
@@ -70,7 +68,6 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
     );
   }
 
-  // Function to update the goal AND create a transaction
   Future<void> _updateGoalSaving(double amount, {required Goal currentGoal, required bool isAdding}) async {
     final user = AuthService().currentUser;
     if (user == null) return;
@@ -78,7 +75,6 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
     final dbService = DatabaseService(userId: user.uid);
 
     try {
-      // 1. Update the goal's current amount
       final newCurrentAmount = isAdding
           ? currentGoal.currentAmount + amount
           : currentGoal.currentAmount - amount;
@@ -87,7 +83,6 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
         currentGoal.copyWith(currentAmount: newCurrentAmount),
       );
 
-      // 2. Create a corresponding transaction
       final transaction = TransactionModel(
         category: 'Mục tiêu: ${currentGoal.name}',
         type: isAdding ? 'expense' : 'income', 
@@ -117,19 +112,13 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
       appBar: AppBar(
         title: Text(widget.goal.name),
       ),
-      // --- FIX: Refactored to prevent flicker ---
-      // The SingleChildScrollView is now the base
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Progress Card (now in its own StreamBuilder)
             _buildGoalProgressCard(context),
-            
             const SizedBox(height: 16),
-            
-            // 2. Info Section (static)
             if (widget.goal.deadline != null)
               ListTile(
                 leading: const Icon(Icons.calendar_today_outlined),
@@ -142,12 +131,7 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
                 title: Text('Mục tiêu quan trọng'),
               ),
             const Divider(),
-            
-            // 3. Action Buttons are now inside _buildGoalProgressCard
-            
             const SizedBox(height: 24),
-            
-            // 4. Transaction History (in its own StreamBuilder, now stable)
             Text(
               'Lịch sử giao dịch mục tiêu',
               style: Theme.of(context).textTheme.titleLarge,
@@ -159,8 +143,12 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
     );
   }
 
-  // --- NEW WIDGET: Handles dynamic goal progress and buttons ---
   Widget _buildGoalProgressCard(BuildContext context) {
+    // --- DEFINE COMMON SHAPE ---
+    final buttonShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    );
+
     return StreamBuilder<DocumentSnapshot>(
       stream: DatabaseService(userId: AuthService().currentUser!.uid)
           .goalsCollection
@@ -250,28 +238,35 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // Action Buttons
             if (!isCompleted)
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
+                    // --- CHANGED TO ELEVATED BUTTON (Red) ---
+                    child: ElevatedButton.icon(
                       onPressed: () => _showUpdateDialog(false, goal),
                       icon: const Icon(Icons.remove),
                       label: const Text('Rút tiền'),
-                      style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red),
+                      style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.red, // Red background
+                          shape: buttonShape, // Sync shape
+                          elevation: 0, // Optional: make it flat to look cleaner
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
+                    // --- ADD BUTTON (Green) ---
                     child: ElevatedButton.icon(
                       onPressed: () => _showUpdateDialog(true, goal),
                       icon: const Icon(Icons.add),
                       label: const Text('Thêm tiền'),
                       style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: Colors.green),
+                          backgroundColor: Colors.green,
+                          shape: buttonShape, // Sync shape
+                      ),
                     ),
                   ),
                 ],
@@ -281,7 +276,6 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
       },
     );
   }
-  // --- END OF NEW WIDGET ---
 
   Widget _buildGoalTransactionList(BuildContext context, String goalName) {
     final dbService = DatabaseService(userId: AuthService().currentUser!.uid);
@@ -297,7 +291,6 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
               .toList()),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Changed to a smaller indicator since it's part of a list
           return const Center(child: Padding(
             padding: EdgeInsets.all(16.0),
             child: CircularProgressIndicator(),
@@ -319,7 +312,7 @@ class _GoalDetailsScreenState extends State<GoalDetailsScreen> {
           itemCount: transactions.length,
           itemBuilder: (context, index) {
             final txn = transactions[index];
-            final bool isAdding = txn.type == 'expense'; // 'expense' = added to goal
+            final bool isAdding = txn.type == 'expense'; 
             return Card(
               elevation: 0,
               color: Colors.grey.shade100,

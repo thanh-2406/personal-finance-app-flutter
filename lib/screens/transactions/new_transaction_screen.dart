@@ -9,7 +9,7 @@ import 'package:personal_finance_app_flutter/widgets/custom_text_field.dart';
 
 class NewTransactionScreen extends StatefulWidget {
   final String category;
-  final String type; // This is now a String: 'expense' or 'income'
+  final String type;
 
   const NewTransactionScreen({
     super.key, 
@@ -26,13 +26,12 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
   final _amountController = TextEditingController();
   final _dateController = TextEditingController();
   final _notesController = TextEditingController();
-  DateTime _selectedDate = DateTime.now(); // We still use DateTime for the picker
+  DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Set initial date in the text field
     _dateController.text = DateFormat('dd/MM/yyyy').format(_selectedDate);
   }
 
@@ -49,7 +48,7 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      lastDate: DateTime.now(), // <--- RESTRICT TO CURRENT DATE OR BEFORE
     );
     if (pickedDate != null) {
       setState(() {
@@ -78,16 +77,15 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
 
       final newTransaction = TransactionModel(
         category: widget.category,
-        type: widget.type, // Pass the String 'expense' or 'income'
+        type: widget.type,
         amount: amount,
-        date: Timestamp.fromDate(_selectedDate), // Convert DateTime to Timestamp
+        date: Timestamp.fromDate(_selectedDate),
         notes: notes,
       );
 
       await DatabaseService(userId: user.uid).addTransaction(newTransaction);
 
       if (mounted) {
-        // Pop twice to go back to the home screen (past the category screen)
         Navigator.pop(context);
         Navigator.pop(context);
       }
@@ -114,18 +112,13 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
         child: Form(
           key: _formKey,
           child: Column(
-            // VVV THIS IS THE FIX VVV
-            // It was crossAxisAlignment(...)
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            // ^^^ THIS IS THE FIX ^^^
             children: [
-              // Category (read-only)
               TextFormField(
                 initialValue: widget.category,
                 readOnly: true,
                 decoration: InputDecoration(
                   labelText: 'Danh mục',
-                  // Use the helper to show the correct icon
                   prefixIcon: CategoryIcon(category: widget.category), 
                   border: const OutlineInputBorder(),
                   filled: false,
@@ -150,7 +143,7 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
                 hintText: 'Ngày',
                 prefixIcon: Icons.calendar_today,
                 readOnly: true,
-                onTap: _showDatePicker, // Show date picker on tap
+                onTap: _showDatePicker,
               ),
               const SizedBox(height: 16),
               CustomTextField(
@@ -161,8 +154,6 @@ class _NewTransactionScreenState extends State<NewTransactionScreen> {
                 maxLines: 3,
               ),
               const SizedBox(height: 32),
-
-              // 2. Buttons
               Row(
                 children: [
                   Expanded(

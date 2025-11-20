@@ -1,8 +1,3 @@
-// =======================================================================
-// lib/screens/budget/add_edit_budget_screen.dart
-// (UPDATED)
-// =======================================================================
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -13,7 +8,7 @@ import 'package:personal_finance_app_flutter/services/database_service.dart';
 import 'package:personal_finance_app_flutter/widgets/custom_text_field.dart';
 
 class AddEditBudgetScreen extends StatefulWidget {
-  final Budget? budget; // Null if adding, has value if editing
+  final Budget? budget;
 
   const AddEditBudgetScreen({super.key, this.budget});
 
@@ -28,21 +23,22 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
   String? _selectedCategory;
   bool _isLoading = false;
 
-  // --- NEW FIELDS FOR PERIOD ---
   BudgetPeriod _selectedPeriod = BudgetPeriod.monthly;
-  DateTime _selectedDate = DateTime.now(); // For daily
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
-  // --- END OF NEW FIELDS ---
 
+  // --- UPDATED CATEGORY LIST ---
   final List<String> _expenseCategories = [
-    'Food',
-    'Health',
-    'Travel',
-    'Shopping',
-    'Bills',
-    'Other'
+    'Ăn uống',
+    'Sức khỏe',
+    'Du lịch',
+    'Mua sắm',
+    'Di chuyển',
+    'Hóa đơn',
+    'Giải trí',
+    'Khác'
   ];
+  // -----------------------------
 
   @override
   void initState() {
@@ -57,7 +53,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
       _startDate = widget.budget!.startDate.toDate();
       _endDate = widget.budget!.endDate?.toDate();
     } else {
-      // Set defaults for a new budget
       _initializeDatesForPeriod(BudgetPeriod.monthly);
     }
     _updateDateRangeText();
@@ -70,7 +65,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     super.dispose();
   }
 
-  // --- NEW: Helper to set dates based on period ---
   void _initializeDatesForPeriod(BudgetPeriod period) {
     final now = DateTime.now();
     switch (period) {
@@ -94,7 +88,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     _updateDateRangeText();
   }
 
-  // --- NEW: Helper to show custom date range picker ---
   Future<void> _showDateRangePicker() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -111,7 +104,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     }
   }
 
-  // --- NEW: Helper to update the text field ---
   void _updateDateRangeText() {
     final formatter = DateFormat('dd/MM/yyyy');
     if (_selectedPeriod == BudgetPeriod.daily) {
@@ -145,7 +137,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     try {
       final amount = double.parse(_amountController.text);
       
-      // --- UPDATED: Create budget with new period logic ---
       final budget = Budget(
         id: widget.budget?.id,
         category: _selectedCategory!,
@@ -154,7 +145,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
         startDate: Timestamp.fromDate(_startDate),
         endDate: _endDate != null ? Timestamp.fromDate(_endDate!) : null,
       );
-      // --- END OF UPDATE ---
 
       final dbService = DatabaseService(userId: user.uid);
       if (widget.budget == null) {
@@ -188,7 +178,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Category Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
                 hint: const Text('Chọn danh mục'),
@@ -212,7 +201,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
               ),
               const SizedBox(height: 16),
               
-              // 2. Amount Field
               CustomTextField(
                 controller: _amountController,
                 hintText: 'Số tiền (ví dụ: 5000000)',
@@ -230,7 +218,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
               ),
               const SizedBox(height: 24),
 
-              // --- NEW: Period Selector ---
               const Text('Kỳ ngân sách', style: TextStyle(fontWeight: FontWeight.bold)),
               DropdownButtonFormField<BudgetPeriod>(
                 value: _selectedPeriod,
@@ -257,7 +244,6 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
               ),
               const SizedBox(height: 16),
               
-              // --- NEW: Date Range Field ---
               CustomTextField(
                 controller: _dateRangeController,
                 hintText: 'Thời gian',
@@ -267,12 +253,10 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
                   if (_selectedPeriod == BudgetPeriod.custom) {
                     _showDateRangePicker();
                   }
-                  // Optional: allow changing date for daily/weekly too
                 },
               ),
               const SizedBox(height: 32),
 
-              // 4. Save Button
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(

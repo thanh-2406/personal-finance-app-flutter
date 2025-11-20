@@ -1,8 +1,3 @@
-// =======================================================================
-// lib/screens/budget/budget_screen.dart
-// (UPDATED)
-// =======================================================================
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -23,10 +18,8 @@ class BudgetScreen extends StatefulWidget {
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
-  // --- REMOVED: _selectedMonthYear ---
   late DatabaseService _dbService;
   late NotificationService _notificationService;
-  String _userName = "User";
   bool _notificationsEnabled = true;
 
   @override
@@ -36,7 +29,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     if (user != null) {
       _dbService = DatabaseService(userId: user.uid);
       _notificationService = NotificationService(dbService: _dbService);
-      _userName = user.displayName ?? user.email?.split('@').first ?? "User";
+      // Note: _userName initialization moved to build() for better reactivity
       
       _dbService.getUserNotificationSettingsStream().listen((isEnabled) {
         if (mounted) {
@@ -48,33 +41,26 @@ class _BudgetScreenState extends State<BudgetScreen> {
     }
   }
   
-  // --- NEW: Helper to filter only budgets active today ---
   List<Budget> _filterActiveBudgets(List<Budget> allBudgets) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     return allBudgets.where((budget) {
       final startDate = budget.startDate.toDate();
-      // For non-custom periods, endDate is null.
       final endDate = budget.endDate?.toDate() ?? DateTime(startDate.year, startDate.month, startDate.day, 23, 59, 59);
-
-      // Ensure endDate includes the whole day
       final inclusiveEndDate = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
 
-      // Check if today is within the budget's start and end date
       return (today.isAfter(startDate) || today.isAtSameMomentAs(startDate)) &&
              (today.isBefore(inclusiveEndDate) || today.isAtSameMomentAs(inclusiveEndDate));
     }).toList();
   }
 
-  // --- NEW: Helper to get start/end dates for transaction query ---
   (DateTime, DateTime) _getTransactionDateRangeForBudgets(List<Budget> activeBudgets) {
     if (activeBudgets.isEmpty) {
       final now = DateTime.now();
       return (DateTime(now.year, now.month, now.day), DateTime(now.year, now.month, now.day, 23, 59, 59));
     }
 
-    // Find the earliest start date and latest end date from all active budgets
     DateTime minStart = activeBudgets.first.startDate.toDate();
     DateTime maxEnd = activeBudgets.first.endDate?.toDate() ?? minStart;
 
@@ -98,28 +84,28 @@ class _BudgetScreenState extends State<BudgetScreen> {
       return const Scaffold(body: Center(child: Text("Please log in.")));
     }
 
+    // --- MOVED USERNAME LOGIC HERE ---
+    final userName = user.displayName != null && user.displayName!.isNotEmpty
+        ? user.displayName
+        : (user.email?.split('@').first ?? "User");
+    // ---------------------------------
+
     return Scaffold(
       body: SafeArea(
-        // --- UPDATED: StreamBuilder for ALL budgets ---
         child: StreamBuilder<List<Budget>>(
           stream: _dbService.getBudgetsStream(),
           builder: (context, budgetSnapshot) {
 
-            // Filter all budgets to get only active ones
             final allBudgets = budgetSnapshot.data ?? [];
             final activeBudgets = _filterActiveBudgets(allBudgets);
-
-            // Get the transaction date range based on active budgets
             final (minDate, maxDate) = _getTransactionDateRangeForBudgets(activeBudgets);
             
-            // --- NEW: StreamBuilder for transactions based on the active budget range ---
             return StreamBuilder<List<TransactionModel>>(
               stream: _dbService.getTransactionsByDateRange(minDate, maxDate),
               builder: (context, transactionSnapshot) {
                 
                 final allTransactions = transactionSnapshot.data ?? [];
 
-                // Check notifications
                 if (_notificationsEnabled &&
                     budgetSnapshot.connectionState == ConnectionState.active &&
                     transactionSnapshot.connectionState == ConnectionState.active) {
@@ -127,11 +113,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       activeBudgets, allTransactions);
                 }
 
-                // Calculate totals based on ACTIVE budgets
                 double totalBudget = activeBudgets.fold(
                     0.0, (sum, budget) => sum + budget.amount);
                 
-                // Calculate total spending for *only* the categories in the active budgets
                 double totalSpent = 0.0;
                 for (var budget in activeBudgets) {
                    final categorySpent = allTransactions
@@ -150,25 +134,29 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                       elevation: 0,
                       titleSpacing: 0,
-                      title: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pushNamed(context, AppRoutes.profile);
-                            },
-                            child: const CircleAvatar(
-                              child: Icon(Icons.person),
+                      // --- ADDED PADDING TO MATCH HOME SCREEN ---
+                      title: Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pushNamed(context, AppRoutes.profile);
+                              },
+                              child: const CircleAvatar(
+                                child: Icon(Icons.person),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            "Hi, $_userName",
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Text(
+                              "Hi, $userName", // Matches Home Screen
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       ),
                       actions: [
                         IconButton(
@@ -262,7 +250,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       delegate: _SectionHeaderDelegate('Ngân sách đang hoạt động'),
                     ),
                     
-                    // --- UPDATED: Show ACTIVE budgets ---
                     if (budgetSnapshot.connectionState == ConnectionState.waiting ||
                         transactionSnapshot.connectionState == ConnectionState.waiting)
                       const SliverToBoxAdapter(
@@ -282,7 +269,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final budget = activeBudgets[index];
-                            // Filter transactions for *this* budget only
                             final categoryTransactions = allTransactions
                                 .where((txn) => txn.category == budget.category)
                                 .toList();
@@ -296,7 +282,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   AppRoutes.budgetDetails,
                                   arguments: {
                                     'budget': budget,
-                                    // Pass only relevant transactions
                                     'transactions': categoryTransactions,
                                   },
                                 );

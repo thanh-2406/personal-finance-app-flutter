@@ -8,7 +8,6 @@ class PersonalInfoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
 
-    // Create a simple encrypted password string
     final encryptedPassword =
         (user?.providerData.first.providerId == 'password')
             ? '••••••••'
@@ -22,7 +21,6 @@ class PersonalInfoScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Email field (read-only)
             TextFormField(
               initialValue: user?.email ?? 'Không có email',
               readOnly: true,
@@ -34,7 +32,6 @@ class PersonalInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             
-            // Password field (dummy)
             TextFormField(
               initialValue: encryptedPassword,
               readOnly: true,
@@ -46,27 +43,30 @@ class PersonalInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             
-            // Change Password Button
             if (user?.providerData.first.providerId == 'password')
-              ElevatedButton(
-                child: const Text('Đổi mật khẩu'),
-                onPressed: () async {
-                  try {
-                    await AuthService().sendPasswordResetEmail(user!.email!);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Đã gửi email đổi mật khẩu!')),
-                      );
+              // --- UPDATED: Sized box for full width ---
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  child: const Text('Đổi mật khẩu'),
+                  onPressed: () async {
+                    try {
+                      await AuthService().sendPasswordResetEmail(user!.email!);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Đã gửi email đổi mật khẩu!')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Lỗi: $e')),
+                        );
+                      }
                     }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Lỗi: $e')),
-                      );
-                    }
-                  }
-                },
+                  },
+                ),
               ),
           ],
         ),

@@ -16,7 +16,6 @@ class SavingGoalsListScreen extends StatelessWidget {
       return const Scaffold(body: Center(child: Text("Please log in.")));
     }
     final dbService = DatabaseService(userId: user.uid);
-    // Initialize the new notification service
     final goalNotificationService = GoalNotificationService(dbService: dbService);
 
     return Scaffold(
@@ -40,10 +39,7 @@ class SavingGoalsListScreen extends StatelessWidget {
 
           final goals = snapshot.data!;
 
-          // --- RUN NOTIFICATION CHECK ---
-          // When the goals are loaded, check for deadlines
           goalNotificationService.checkGoalDeadlines(goals);
-          // --- END OF CHECK ---
 
           return ListView.builder(
             itemCount: goals.length,
@@ -53,6 +49,29 @@ class SavingGoalsListScreen extends StatelessWidget {
               return Dismissible(
                 key: Key(goal.id!),
                 direction: DismissDirection.endToStart,
+                // --- ADDED: Confirmation Dialog ---
+                confirmDismiss: (direction) async {
+                  return await showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text("Xác nhận xóa"),
+                        content: Text("Bạn có chắc muốn xóa mục tiêu '${goal.name}' không?"),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text("Hủy"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text("Xóa", style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                // ----------------------------------
                 onDismissed: (direction) {
                   dbService.deleteGoal(goal.id!);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -68,14 +87,10 @@ class SavingGoalsListScreen extends StatelessWidget {
                 child: GoalCard(
                   goal: goal,
                   onTap: () {
-                    // --- UPDATED NAVIGATION ---
-                    // Navigate to the new GoalDetailsScreen
                     Navigator.pushNamed(context, AppRoutes.goalDetails,
                         arguments: goal);
                   },
                   onEdit: () {
-                    // --- NEW EDIT FUNCTION ---
-                    // Navigate to the AddEditGoalScreen to edit
                     Navigator.pushNamed(context, AppRoutes.addEditGoal,
                         arguments: goal);
                   },

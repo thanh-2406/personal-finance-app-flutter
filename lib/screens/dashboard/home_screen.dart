@@ -5,7 +5,7 @@ import 'package:personal_finance_app_flutter/services/auth_service.dart';
 import 'package:personal_finance_app_flutter/services/database_service.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
-import 'package:personal_finance_app_flutter/utils/currency_formatter.dart'; // Import formatter
+import 'package:personal_finance_app_flutter/utils/currency_formatter.dart';
 import 'package:personal_finance_app_flutter/widgets/category_icon.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -21,7 +21,10 @@ class HomeScreen extends StatelessWidget {
     }
     
     final dbService = DatabaseService(userId: user.uid);
-    final userName = user.displayName ?? user.email?.split('@').first ?? "User";
+    // Fix for username sometimes not showing: Ensure fallback is robust
+    final userName = user.displayName != null && user.displayName!.isNotEmpty
+        ? user.displayName
+        : (user.email?.split('@').first ?? "User");
 
     return Scaffold(
       body: SafeArea(
@@ -32,24 +35,27 @@ class HomeScreen extends StatelessWidget {
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               elevation: 0,
               titleSpacing: 0,
-              title: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, AppRoutes.profile);
-                    },
-                    child: const CircleAvatar(
-                      child: Icon(Icons.person),
+              // ADDED PADDING HERE
+              title: Padding(
+                padding: const EdgeInsets.only(left: 16.0),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.profile);
+                      },
+                      child: const CircleAvatar(
+                        child: Icon(Icons.person),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Hello, $userName",
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Text(
+                      "Hi, $userName", // Changed Hello -> Hi
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
-              // --- FIX: Removed the empty actions button ---
             ),
             
             SliverToBoxAdapter(
@@ -101,7 +107,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  CurrencyFormatter.format(balance), // <-- USE FORMATTER
+                  CurrencyFormatter.format(balance),
                   style: Theme.of(context)
                       .textTheme
                       .headlineMedium
@@ -111,7 +117,7 @@ class HomeScreen extends StatelessWidget {
                 _buildBalanceBar(
                   context: context,
                   label: 'Thu nhập',
-                  amount: CurrencyFormatter.format(totalIncome), // <-- USE FORMATTER
+                  amount: CurrencyFormatter.format(totalIncome),
                   progress: incomeProgress,
                   color: Colors.green,
                 ),
@@ -119,7 +125,7 @@ class HomeScreen extends StatelessWidget {
                 _buildBalanceBar(
                   context: context,
                   label: 'Chi tiêu',
-                  amount: CurrencyFormatter.format(totalExpense), // <-- USE FORMATTER
+                  amount: CurrencyFormatter.format(totalExpense),
                   progress: expenseProgress,
                   color: Colors.red,
                 ),
@@ -211,13 +217,12 @@ class HomeScreen extends StatelessWidget {
                   ),
                   ...items.map((txn) => ListTile(
                         leading: CircleAvatar(
-                          // --- This will now use the fixed CategoryIcon ---
                           child: CategoryIcon(category: txn.category),
                         ),
                         title: Text(txn.category),
                         subtitle: Text(txn.notes),
                         trailing: Text(
-                          '${txn.type == 'income' ? '+' : '-'}${CurrencyFormatter.format(txn.amount)}', // <-- USE FORMATTER
+                          '${txn.type == 'income' ? '+' : '-'}${CurrencyFormatter.format(txn.amount)}',
                           style: TextStyle(
                             color: txn.type == 'income' ? Colors.green : Colors.red,
                             fontWeight: FontWeight.bold,

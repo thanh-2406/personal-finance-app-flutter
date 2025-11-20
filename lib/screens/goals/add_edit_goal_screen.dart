@@ -7,7 +7,7 @@ import 'package:personal_finance_app_flutter/services/database_service.dart';
 import 'package:personal_finance_app_flutter/widgets/custom_text_field.dart';
 
 class AddEditGoalScreen extends StatefulWidget {
-  final Goal? goal; // Null if adding, has value if editing
+  final Goal? goal;
 
   const AddEditGoalScreen({super.key, this.goal});
 
@@ -87,7 +87,7 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
       final currentAmount = double.parse(_currentAmountController.text);
 
       final goal = Goal(
-        id: widget.goal?.id, // Will be null if adding
+        id: widget.goal?.id,
         name: name,
         targetAmount: targetAmount,
         currentAmount: currentAmount,
@@ -99,14 +99,12 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
 
       final dbService = DatabaseService(userId: user.uid);
       if (widget.goal == null) {
-        // Add new goal
         await dbService.addGoal(goal);
       } else {
-        // Update existing goal
         await dbService.updateGoal(goal);
       }
 
-      if (mounted) Navigator.pop(context); // Go back to goals list
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -120,8 +118,8 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Cannot edit current amount if already editing a goal
     final bool canEditCurrentAmount = widget.goal == null;
+    final labelStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold);
 
     return Scaffold(
       appBar: AppBar(
@@ -134,16 +132,21 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text('Tên mục tiêu', style: labelStyle), // <--- ADDED TITLE
+              const SizedBox(height: 8),
               CustomTextField(
                 controller: _nameController,
-                hintText: 'Tên mục tiêu (ví dụ: Mua Laptop)',
+                hintText: 'Ví dụ: Mua Laptop',
                 validator: (val) =>
                     val == null || val.isEmpty ? 'Vui lòng nhập tên' : null,
               ),
               const SizedBox(height: 16),
+              
+              Text('Số tiền mục tiêu', style: labelStyle), // <--- ADDED TITLE
+              const SizedBox(height: 8),
               CustomTextField(
                 controller: _targetAmountController,
-                hintText: 'Số tiền mục tiêu (ví dụ: 25000000)',
+                hintText: 'Ví dụ: 25000000',
                 keyboardType: TextInputType.number,
                 validator: (val) {
                   if (val == null || val.isEmpty) return 'Vui lòng nhập số tiền';
@@ -154,10 +157,13 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              if (canEditCurrentAmount)
+              
+              if (canEditCurrentAmount) ...[
+                Text('Số tiền ban đầu', style: labelStyle), // <--- ADDED TITLE
+                const SizedBox(height: 8),
                 CustomTextField(
                   controller: _currentAmountController,
-                  hintText: 'Số tiền ban đầu (ví dụ: 0)',
+                  hintText: 'Ví dụ: 0',
                   keyboardType: TextInputType.number,
                   validator: (val) {
                     if (val == null || val.isEmpty) return 'Vui lòng nhập số tiền';
@@ -167,17 +173,20 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
                     return null;
                   },
                 ),
-              const SizedBox(height: 16),
-              // Deadline Field
+                const SizedBox(height: 16),
+              ],
+
+              Text('Ngày hết hạn', style: labelStyle), // <--- ADDED TITLE
+              const SizedBox(height: 8),
               CustomTextField(
                 controller: _deadlineController,
-                hintText: 'Ngày hết hạn (tùy chọn)',
+                hintText: 'Chọn ngày (Tùy chọn)',
                 prefixIcon: Icons.calendar_today,
                 readOnly: true,
                 onTap: _showDatePicker,
               ),
               const SizedBox(height: 16),
-              // Important Toggle
+              
               SwitchListTile(
                 title: const Text('Đánh dấu là mục tiêu quan trọng'),
                 value: _isImportant,

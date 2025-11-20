@@ -6,21 +6,22 @@ class CategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // This category data can remain static or be moved to Firestore later
     final expenseCategories = [
-      {'name': 'Food', 'icon': Icons.fastfood},
-      {'name': 'Health', 'icon': Icons.health_and_safety},
-      {'name': 'Travel', 'icon': Icons.flight},
-      {'name': 'Shopping', 'icon': Icons.shopping_cart},
-      {'name': 'Bills', 'icon': Icons.receipt},
-      {'name': 'Other', 'icon': Icons.more_horiz},
+      {'name': 'Ăn uống', 'icon': Icons.fastfood}, // <--- UPDATED
+      {'name': 'Sức khỏe', 'icon': Icons.health_and_safety}, // <--- UPDATED
+      {'name': 'Du lịch', 'icon': Icons.flight}, // <--- UPDATED
+      {'name': 'Mua sắm', 'icon': Icons.shopping_cart}, // <--- UPDATED
+      {'name': 'Di chuyển', 'icon': Icons.directions_bus}, // <--- UPDATED
+      {'name': 'Hóa đơn', 'icon': Icons.receipt}, // <--- UPDATED
+      {'name': 'Giải trí', 'icon': Icons.movie}, // <--- UPDATED
+      {'name': 'Khác', 'icon': Icons.more_horiz}, // <--- UPDATED
     ];
     
     final incomeCategories = [
-      {'name': 'Salary', 'icon': Icons.work},
-      {'name': 'Freelance', 'icon': Icons.business_center},
-      {'name': 'Gift', 'icon': Icons.card_giftcard},
-      {'name': 'Other', 'icon': Icons.more_horiz},
+      {'name': 'Lương', 'icon': Icons.work}, // <--- UPDATED
+      {'name': 'Làm thêm', 'icon': Icons.business_center}, // <--- UPDATED
+      {'name': 'Quà tặng', 'icon': Icons.card_giftcard}, // <--- UPDATED
+      {'name': 'Khác', 'icon': Icons.more_horiz}, // <--- UPDATED
     ];
 
     return DefaultTabController(
@@ -58,7 +59,6 @@ class CategoryScreen extends StatelessWidget {
         final category = categories[index];
         return InkWell(
           onTap: () {
-            // Navigate to New Transaction screen, passing the category and type
             Navigator.pushNamed(
               context, 
               AppRoutes.newTransaction,
@@ -76,7 +76,7 @@ class CategoryScreen extends StatelessWidget {
               children: [
                 Icon(category['icon'] as IconData, size: 40, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 8),
-                Text(category['name'] as String),
+                Text(category['name'] as String, textAlign: TextAlign.center),
               ],
             ),
           ),
