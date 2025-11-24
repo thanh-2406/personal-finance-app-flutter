@@ -1,17 +1,64 @@
-# personal-finance-app-flutter
-# personal_finance_app_flutter
+📌 Giới thiệu dự án – Personal Finance App
 
-A new Flutter project.
+Personal Finance App là ứng dụng quản lý tài chính cá nhân được xây dựng bằng Flutter, hướng đến việc giúp người dùng theo dõi thu nhập, chi tiêu, ngân sách và mục tiêu tiết kiệm một cách trực quan và hiệu quả.
 
-## Getting Started
+Ứng dụng được thiết kế đơn giản, dễ sử dụng và phù hợp cho mọi đối tượng muốn quản lý tài chính hằng ngày. Dự án cũng được xây dựng với kiến trúc rõ ràng, dễ mở rộng, và có thể phát triển thành một sản phẩm hoàn chỉnh trong tương lai.
 
-This project is a starting point for a Flutter application.
+🎯 Mục tiêu dự án
 
-A few resources to get you started if this is your first Flutter project:
+Cung cấp giao diện trực quan để theo dõi thu nhập – chi tiêu – số dư.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Hỗ trợ người dùng thiết lập và theo dõi ngân sách theo từng danh mục.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Quản lý mục tiêu tiết kiệm (saving goals).
+
+Lưu trữ dữ liệu trên local để thuận tiện khi chạy offline.
+
+Dùng Flutter để đảm bảo app có thể chạy trên cả Android và iOS.
+
+🛠️ Công nghệ sử dụng
+
+Flutter (Dart) – Xây dựng UI và logic ứng dụng.
+
+Firebase Authentication / Firebase Storage
+
+Material Design 3 – Thiết kế giao diện hiện đại.
+
+Git + GitHub – Quản lý source code theo mô hình hợp tác nhóm.
+
+📱 Các chức năng chính
+🔐 1. Xác thực
+
+Đăng ký tài khoản (local)
+
+Đăng nhập / Đăng xuất
+
+Thiết kế đơn giản để mock dữ liệu
+
+💸 2. Quản lý thu nhập – chi tiêu
+
+Thêm, sửa, xóa giao dịch
+
+Phân loại giao dịch theo danh mục
+
+Xem lịch sử chi tiêu theo ngày/tháng
+
+📊 3. Báo cáo
+
+Biểu đồ thu – chi
+
+Tổng quan tài chính theo tháng
+
+Số dư hiện tại
+
+🧩 4. Ngân sách (Budget)
+
+Tạo ngân sách cho từng danh mục
+
+Cảnh báo khi vượt ngân sách
+
+🎯 5. Mục tiêu tiết kiệm
+
+Tạo mục tiêu (saving goal)
+
+Theo dõi tiến độ đạt mục tiêu theo thời gian
